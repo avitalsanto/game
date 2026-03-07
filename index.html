@@ -1,1 +1,569 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Space Breaker Israel - War Edition</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Black+Ops+One&family=Rubik:wght@500;700&display=swap');
 
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #000000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Black Ops One', cursive, 'Rubik', sans-serif;
+            overflow: hidden;
+            touch-action: none; /* מונע גלילה ופעולות דפדפן במגע */
+        }
+
+        #game-wrapper {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            max-width: 500px;
+            background: #000000;
+            box-shadow: 0 0 20px rgba(0, 150, 255, 0.2);
+            overflow: hidden;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at center, #001a33 0%, #000 100%);
+        }
+
+        /* --- ממשק משתמש אחיד ומיושר --- */
+        #ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            padding: 20px 10px;
+            box-sizing: border-box;
+            display: flex;
+            justify-content: space-around;
+            align-items: flex-start;
+            pointer-events: none;
+            z-index: 10;
+            color: white;
+        }
+
+        .ui-box {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            min-width: 55px;
+        }
+
+        .ui-label {
+            font-size: 9px;
+            color: #b0d0ff;
+            margin-bottom: 2px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 500;
+        }
+
+        .ui-value {
+            font-size: 16px;
+            text-shadow: 0 0 10px #fff;
+            font-family: 'Black Ops One', system-ui;
+        }
+
+        .lives-box .ui-label {
+            color: #b0d0ff;
+        }
+
+        .lives-box .ui-value {
+            color: #ff3366;
+            text-shadow: 0 0 12px rgba(255, 51, 102, 0.6);
+        }
+
+        #message-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 5, 20, 0.95);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 50; /* הגבהת שכבת ההודעות */
+            color: white;
+            text-align: center;
+            cursor: pointer;
+            pointer-events: auto; /* מוודא שהאירועים נקלטים */
+        }
+
+        #message-title {
+            font-size: 32px;
+            color: #00e5ff;
+            text-shadow: 0 0 20px #00e5ff;
+            margin-bottom: 10px;
+        }
+
+        #message-subtitle {
+            font-size: 18px;
+            color: #b0d0ff;
+            font-family: 'Rubik', sans-serif;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
+
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+    <div id="game-wrapper">
+        <div id="ui-layer" dir="ltr">
+            <div class="ui-box">
+                <div class="ui-label">SCORE</div>
+                <div class="ui-value" id="scoreEl">0</div>
+            </div>
+            
+            <div class="ui-box">
+                <div class="ui-label">LEVEL</div>
+                <div class="ui-value" id="levelEl">1/10</div>
+            </div>
+
+            <div class="ui-box lives-box">
+                <div class="ui-label">LIVES</div>
+                <div class="ui-value" id="livesEl">3</div>
+            </div>
+
+            <div class="ui-box">
+                <div class="ui-label">TARGET</div>
+                <div class="ui-value" id="targetEl">0/0</div>
+            </div>
+        </div>
+
+        <canvas id="gameCanvas"></canvas>
+
+        <div id="message-overlay">
+            <div id="message-title">SPACE BREAKER</div>
+            <div id="message-subtitle">גע כאן כדי להתחיל</div>
+        </div>
+    </div>
+
+    <script>
+        // --- 1. הגדרות משתנים גלובליים ---
+        let canvas, ctx, wrapper;
+        let scoreEl, livesEl, levelEl, targetEl, messageOverlay, messageTitle, messageSubtitle;
+
+        const mapImages = [];
+        const imageUrls = [
+            "https://static.wixstatic.com/media/b4f4e1_3f1c67474e39458185c457978bfa1873~mv2.jpg",
+            "https://static.wixstatic.com/media/b4f4e1_da693f31949f4d49ae9efba09705ad8f~mv2.webp",
+            "https://static.wixstatic.com/media/b4f4e1_4340f5cc43134b288e3ba0668be91eec~mv2.png",
+            "https://static.wixstatic.com/media/b4f4e1_373792108e184f619dd58eb38240044a~mv2.png"
+        ];
+
+        let loadedCount = 0;
+        imageUrls.forEach(url => {
+            const img = new Image();
+            img.onload = () => { loadedCount++; };
+            img.onerror = () => { loadedCount++; };
+            img.src = url;
+            mapImages.push(img);
+        });
+
+        let cw, ch, gameState = 'START', score = 0, lives = 3, currentLevel = 1;
+        const maxLevels = 10;
+        let totalBricks = 0, brokenBricks = 0, animationId, screenShake = 0;
+
+        const paddle = { w: 100, h: 18, x: 0, y: 0, speed: 6, color: '#cceeff', glow: '#00ccff' };
+        const input = { left: false, right: false, touchX: null };
+        const balls = [], bricks = [], particles = [], stars = [], activePowerups = [], floatingTexts = [];
+
+        const imageScores = [10, 20, 30, 50];
+
+        const specialEffects = [
+            { id: 'multiball', emoji: '🎖️' },
+            { id: 'expand', emoji: '🛡️' },
+            { id: 'shrink', emoji: '⚠️' },
+            { id: 'life', emoji: '💊' },
+            { id: 'slow', emoji: '❄️' },
+            { id: 'fast', emoji: '⚡' }
+        ];
+
+        // --- 2. פונקציות ליבה ---
+
+        function initStars() {
+            stars.length = 0;
+            for(let i=0; i<80; i++) {
+                stars.push({ x: Math.random() * 2000, y: Math.random() * 2000, r: Math.random() * 1.5 + 0.5, alpha: Math.random(), speed: Math.random() * 0.05 + 0.01 });
+            }
+        }
+
+        function resetPaddle() {
+            if (!cw) return;
+            paddle.w = cw * 0.25;
+            paddle.x = (cw - paddle.w) / 2;
+            paddle.y = ch - ch * 0.12;
+            paddle.speed = cw * 0.016; 
+        }
+
+        function resize() {
+            if (!wrapper || !canvas) return;
+            cw = wrapper.clientWidth;
+            ch = wrapper.clientHeight;
+            canvas.width = cw;
+            canvas.height = ch;
+            resetPaddle();
+        }
+
+        function spawnBall(x, y) {
+            const angle = Math.PI * (1.25 + Math.random() * 0.5);
+            const speed = ch > 800 ? 3.5 : 2.5; 
+            balls.push({ x, y, dx: Math.cos(angle) * speed, dy: Math.sin(angle) * speed, r: 7, speed, trail: [] });
+        }
+
+        function resetBall() {
+            balls.length = 0;
+            spawnBall(paddle.x + paddle.w/2, paddle.y - 15);
+        }
+
+        function updateUI() {
+            if (scoreEl) scoreEl.innerText = score; 
+            if (livesEl) livesEl.innerText = lives;
+            if (levelEl) levelEl.innerText = `${currentLevel}/10`; 
+            if (targetEl) targetEl.innerText = `${brokenBricks}/${totalBricks}`;
+        }
+
+        function drawImageCover(ctx, img, x, y, w, h) {
+            if (!img.complete) {
+                ctx.fillStyle = "#333";
+                ctx.fillRect(x, y, w, h);
+                return;
+            }
+            const imgRatio = img.width / img.height;
+            const targetRatio = w / h;
+            let sx, sy, sw, sh;
+            if (imgRatio > targetRatio) {
+                sh = img.height;
+                sw = img.height * targetRatio;
+                sx = (img.width - sw) / 2;
+                sy = 0;
+            } else {
+                sw = img.width;
+                sh = img.width / targetRatio;
+                sx = 0;
+                sy = (img.height - sh) / 2;
+            }
+            ctx.drawImage(img, sx, sy, sw, sh, x, y, w, h);
+        }
+
+        function initLevel(level) {
+            bricks.length = 0;
+            const cols = 9;
+            const rows = 12;
+            const padding = 5;
+            const offsetTop = ch * 0.18;
+            let cellWidth = (cw - (padding * (cols + 1))) / cols;
+            if (cellWidth > 50) cellWidth = 50;
+            const offsetLeft = (cw - (cols * (cellWidth + padding))) / 2;
+
+            const patternType = level % 5; 
+            const midC = Math.floor(cols / 2);
+            const midR = 4;
+
+            for (let r = 0; r < rows; r++) {
+                for (let c = 0; c < cols; c++) {
+                    let shouldPlace = false;
+                    switch(patternType) {
+                        case 0: if (Math.abs(c - midC) + Math.abs(r - midR) <= 3) shouldPlace = true; break;
+                        case 1: if (Math.abs(c - midC) <= r && r < 5) shouldPlace = true; break;
+                        case 2: if (Math.abs(c - midC) === Math.abs(r - midR) && r < 9) shouldPlace = true; break;
+                        case 3: const d = Math.hypot(c - midC, r - midR); if (d > 1.6 && d < 3.8) shouldPlace = true; break;
+                        case 4: if (r % 2 === 0 && r < 9 && Math.abs(c - midC) < 4) shouldPlace = true; break;
+                    }
+                    if (!shouldPlace) continue;
+
+                    let effect = 'normal', emoji = '', isGrey = (Math.random() < 0.12);
+                    let hp = isGrey ? 2 : 1;
+                    if (!isGrey && Math.random() < 0.28) {
+                        if (Math.random() < 0.45) { effect = 'bomb'; emoji = '💣'; }
+                        else { let p = specialEffects[Math.floor(Math.random() * specialEffects.length)]; effect = p.id; emoji = p.emoji; }
+                    }
+                    bricks.push({
+                        x: offsetLeft + padding + c * (cellWidth + padding),
+                        y: offsetTop + r * (cellWidth + padding),
+                        w: cellWidth, h: cellWidth,
+                        status: 1, hp, maxHp: hp, effect, emoji, isGrey,
+                        imgType: Math.floor(Math.random() * mapImages.length)
+                    });
+                }
+            }
+            if (bricks.length === 0) return initLevel(level);
+            totalBricks = bricks.filter(b => !b.isGrey).length;
+            if (totalBricks === 0) { bricks[0].isGrey = false; bricks[0].hp = 1; totalBricks = 1; }
+            brokenBricks = 0;
+            updateUI();
+        }
+
+        function initGame(levelReset = false) {
+            if (levelReset) { currentLevel = 1; score = 0; lives = 3; }
+            screenShake = 0;
+            particles.length = 0;
+            floatingTexts.length = 0;
+            activePowerups.length = 0;
+            resize(); 
+            initLevel(currentLevel);
+            resetPaddle();
+            resetBall();
+            updateUI();
+        }
+
+        function endGame(state, title, subtitle) {
+            gameState = state;
+            messageTitle.innerText = title;
+            messageTitle.style.color = state === 'VICTORY' ? '#00ffaa' : '#ff3366';
+            messageSubtitle.innerText = subtitle;
+            messageOverlay.classList.remove('hidden');
+            if (animationId) cancelAnimationFrame(animationId);
+            animationId = null;
+        }
+
+        function addFloatingText(text, x, y, color) {
+            floatingTexts.push({ text, x, y, life: 1.0, color });
+        }
+
+        function applyPowerup(effect, x, y) {
+            addFloatingText(effect.toUpperCase() + '!', x, y - 20, '#00ffcc');
+            paddle.glow = '#00ffcc';
+            setTimeout(() => paddle.glow = '#00ccff', 200);
+            switch(effect) {
+                case 'multiball': spawnBall(paddle.x + paddle.w/2, paddle.y - 15); break;
+                case 'expand': paddle.w = Math.min(cw * 0.7, paddle.w + cw * 0.1); break;
+                case 'shrink': paddle.w = Math.max(cw * 0.12, paddle.w - cw * 0.08); break;
+                case 'life': lives++; break;
+                case 'slow': balls.forEach(b => { b.dx *= 0.8; b.dy *= 0.8; }); break;
+                case 'fast': balls.forEach(b => { b.dx *= 1.2; b.dy *= 1.2; }); break;
+            }
+            updateUI();
+        }
+
+        function destroyBrick(br) {
+            if (br.status === 0) return;
+            br.status = 0;
+            if (br.effect === 'bomb') {
+                screenShake = 20;
+                addFloatingText('בום!', br.x + br.w/2, br.y, '#ff3300');
+                for(let i=0; i<15; i++) particles.push({x:br.x+br.w/2, y:br.y+br.h/2, vx:(Math.random()-0.5)*8, vy:(Math.random()-0.5)*8, size:Math.random()*5, color:'#ff4400', life:1});
+                score += 50; brokenBricks++;
+                bricks.forEach(other => {
+                    if (other.status === 1 && Math.hypot((other.x+other.w/2)-(br.x+br.w/2), (other.y+other.h/2)-(br.y+br.h/2)) < br.w*2.8) {
+                        setTimeout(() => destroyBrick(other), 60);
+                    }
+                });
+            } else {
+                for(let i=0; i<8; i++) particles.push({x:br.x+br.w/2, y:br.y+br.h/2, vx:(Math.random()-0.5)*4, vy:(Math.random()-0.5)*4, size:Math.random()*3, color:'#fff', life:1});
+                if (!br.isGrey) brokenBricks++;
+                if (br.effect !== 'normal') activePowerups.push({ x: br.x + br.w/2, y: br.y + br.h/2, dy: 2.0, effect: br.effect, emoji: br.emoji });
+            }
+            updateUI();
+            if (brokenBricks >= totalBricks && gameState === 'PLAYING') {
+                if (currentLevel < maxLevels) {
+                    gameState = 'LEVEL_UP';
+                    messageTitle.innerText = `שלב ${currentLevel} הושלם!`;
+                    messageSubtitle.innerText = 'לחץ כדי להמשיך';
+                    messageOverlay.classList.remove('hidden');
+                    if (animationId) cancelAnimationFrame(animationId);
+                    animationId = null;
+                } else endGame('VICTORY', 'ניצחון מוחלט!', 'סיימת את כל השלבים!');
+            }
+        }
+
+        function update() {
+            if (gameState !== 'PLAYING') return;
+
+            if (input.touchX !== null) {
+                let targetX = input.touchX - paddle.w / 2;
+                paddle.x += (targetX - paddle.x) * 0.25; 
+            } else {
+                if (input.left) paddle.x -= paddle.speed;
+                if (input.right) paddle.x += paddle.speed;
+            }
+            paddle.x = Math.max(0, Math.min(cw - paddle.w, paddle.x));
+
+            particles.forEach((p, i) => { p.x += p.vx; p.y += p.vy; p.life -= 0.025; if(p.life <= 0) particles.splice(i, 1); });
+            floatingTexts.forEach((f, i) => { f.y -= 0.6; f.life -= 0.02; if(f.life <= 0) floatingTexts.splice(i, 1); });
+            activePowerups.forEach((p, i) => { 
+                p.y += p.dy;
+                if (p.y > paddle.y && p.y < paddle.y + paddle.h && p.x > paddle.x && p.x < paddle.x + paddle.w) {
+                    applyPowerup(p.effect, p.x, paddle.y); activePowerups.splice(i, 1);
+                } else if (p.y > ch) activePowerups.splice(i, 1);
+            });
+
+            balls.forEach((b, i) => {
+                b.trail.push({x: b.x, y: b.y}); if(b.trail.length > 8) b.trail.shift();
+                b.x += b.dx; b.y += b.dy;
+                if (b.x < b.r || b.x > cw - b.r) { b.dx *= -1; b.x = b.x < b.r ? b.r : cw - b.r; }
+                if (b.y < b.r) { b.dy *= -1; b.y = b.r; }
+                if (b.y > ch) {
+                    balls.splice(i, 1);
+                    if (balls.length === 0) {
+                        lives--; updateUI();
+                        if (lives <= 0) endGame('GAMEOVER', 'הפסדת!', 'לחץ לנסות שוב');
+                        else { resetBall(); resetPaddle(); }
+                    }
+                    return;
+                }
+                if (b.y + b.r > paddle.y && b.y - b.r < paddle.y + paddle.h && b.x > paddle.x && b.x < paddle.x + paddle.w && b.dy > 0) {
+                    let hit = (b.x - (paddle.x + paddle.w/2)) / (paddle.w/2);
+                    let angle = hit * (Math.PI/3);
+                    let s = Math.hypot(b.dx, b.dy);
+                    b.dx = s * Math.sin(angle); b.dy = -s * Math.cos(angle);
+                }
+                bricks.forEach(br => {
+                    if (br.status === 1 && b.x + b.r > br.x && b.x - b.r < br.x + br.w && b.y + b.r > br.y && b.y - b.r < br.y + br.h) {
+                        if (b.x < br.x || b.x > br.x + br.w) b.dx *= -1; else b.dy *= -1;
+                        const baseVal = imageScores[br.imgType] || 10;
+                        const hitPoints = br.isGrey ? baseVal * 2 : baseVal;
+                        score += hitPoints;
+                        addFloatingText(`+${hitPoints}`, b.x, b.y, br.imgType === 3 ? '#ffcc00' : '#00e5ff');
+                        br.hp--; if(br.hp <= 0) destroyBrick(br);
+                        updateUI();
+                    }
+                });
+            });
+        }
+
+        function draw() {
+            if (!ctx) return;
+            ctx.fillStyle = '#000'; ctx.fillRect(0,0,cw,ch);
+            ctx.save();
+            if(screenShake > 0) { ctx.translate((Math.random()-0.5)*screenShake, (Math.random()-0.5)*screenShake); screenShake *= 0.9; }
+            stars.forEach(s => { ctx.globalAlpha = Math.random()*0.3 + 0.2; ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(s.x%cw, s.y%ch, s.r, 0, Math.PI*2); ctx.fill(); });
+            ctx.restore(); ctx.globalAlpha = 1;
+
+            bricks.forEach(b => {
+                if(b.status === 1) {
+                    ctx.save();
+                    if (b.effect !== 'normal') {
+                        ctx.fillStyle = '#111'; ctx.strokeStyle = '#00e5ff'; ctx.lineWidth = 2;
+                        ctx.beginPath(); ctx.roundRect(b.x, b.y, b.w, b.h, 8); ctx.fill(); ctx.stroke();
+                        ctx.font = '24px Arial'; ctx.textAlign='center'; ctx.textBaseline='middle';
+                        ctx.fillStyle = "white";
+                        ctx.fillText(b.emoji, b.x+b.w/2, b.y+b.h/2);
+                    } else {
+                        if(b.isGrey && b.hp === 1) ctx.globalAlpha = 0.5;
+                        const currentImg = mapImages[b.imgType];
+                        drawImageCover(ctx, currentImg, b.x, b.y, b.w, b.h);
+                    }
+                    ctx.restore();
+                }
+            });
+
+            ctx.shadowBlur = 15; ctx.shadowColor = paddle.glow; ctx.fillStyle = paddle.color;
+            ctx.beginPath(); ctx.roundRect(paddle.x, paddle.y, paddle.w, paddle.h, 10); ctx.fill();
+            ctx.shadowBlur = 0;
+
+            balls.forEach(b => {
+                ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, Math.PI*2); ctx.fill();
+                b.trail.forEach((p, idx) => { ctx.globalAlpha = idx / 20; ctx.beginPath(); ctx.arc(p.x, p.y, b.r * (idx/12), 0, Math.PI*2); ctx.fill(); });
+            });
+
+            ctx.globalAlpha = 1;
+            activePowerups.forEach(p => { ctx.font='28px Arial'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(p.emoji, p.x, p.y); });
+            floatingTexts.forEach(f => { ctx.globalAlpha=f.life; ctx.fillStyle=f.color; ctx.font='bold 22px Rubik'; ctx.textAlign='center'; ctx.fillText(f.text, f.x, f.y); });
+        }
+
+        function gameLoop() {
+            if (gameState === 'PLAYING') {
+                update(); 
+                draw();
+                animationId = requestAnimationFrame(gameLoop);
+            } else {
+                draw();
+            }
+        }
+
+        let isHandling = false;
+        function handleInteraction(e) {
+            if (e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+            if (isHandling) return;
+            isHandling = true;
+            setTimeout(() => { isHandling = false; }, 500);
+
+            if (gameState === 'START' || gameState === 'GAMEOVER' || gameState === 'VICTORY') {
+                initGame(true); 
+                gameState = 'PLAYING';
+                messageOverlay.classList.add('hidden');
+                if (!animationId) gameLoop();
+            } else if (gameState === 'LEVEL_UP') {
+                currentLevel++; 
+                initGame(false); 
+                gameState = 'PLAYING';
+                messageOverlay.classList.add('hidden');
+                if (!animationId) gameLoop();
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            canvas = document.getElementById('gameCanvas');
+            ctx = canvas.getContext('2d', { alpha: false });
+            wrapper = document.getElementById('game-wrapper');
+            scoreEl = document.getElementById('scoreEl');
+            livesEl = document.getElementById('livesEl');
+            levelEl = document.getElementById('levelEl');
+            targetEl = document.getElementById('targetEl');
+            messageOverlay = document.getElementById('message-overlay');
+            messageTitle = document.getElementById('message-title');
+            messageSubtitle = document.getElementById('message-subtitle');
+
+            initStars();
+            resize();
+            
+            // מנגנון Pointer המאוחד למובייל ודסקטופ
+            messageOverlay.addEventListener('pointerdown', handleInteraction, { capture: true, passive: false });
+
+            window.addEventListener('resize', resize);
+            window.addEventListener('keydown', e => { if(e.key.includes('Left')) input.left=true; if(e.key.includes('Right')) input.right=true; });
+            window.addEventListener('keyup', e => { if(e.key.includes('Left')) input.left=false; if(e.key.includes('Right')) input.right=false; });
+            
+            const getTouchX = e => {
+                const rect = canvas.getBoundingClientRect();
+                const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+                return clientX - rect.left;
+            };
+
+            // שימוש ב-Event Listeners על ה-wrapper לשליטה במגש
+            wrapper.addEventListener('pointerdown', e => {
+                if (gameState !== 'PLAYING') return;
+                input.touchX = (e.touches ? e.touches[0].clientX : e.clientX) - canvas.getBoundingClientRect().left;
+            }, {passive: false});
+
+            wrapper.addEventListener('pointermove', e => {
+                if (gameState !== 'PLAYING' || input.touchX === null) return;
+                input.touchX = (e.touches ? e.touches[0].clientX : e.clientX) - canvas.getBoundingClientRect().left;
+            }, {passive: false});
+
+            wrapper.addEventListener('pointerup', () => {
+                input.touchX = null;
+            }, {passive: false});
+            
+            wrapper.addEventListener('pointercancel', () => {
+                input.touchX = null;
+            }, {passive: false});
+
+            // ציור ראשוני
+            setTimeout(() => { draw(); }, 200);
+        });
+    </script>
+</body>
+</html>
