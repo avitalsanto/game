@@ -101,6 +101,7 @@
             color: white;
             text-align: center;
             cursor: pointer;
+            pointer-events: auto; /* מוודא שהאירועים נקלטים */
         }
 
         #message-title {
@@ -168,12 +169,11 @@
             "https://static.wixstatic.com/media/b4f4e1_373792108e184f619dd58eb38240044a~mv2.png"
         ];
 
-        // טעינת תמונות עם מנגנון הגנה
         let loadedCount = 0;
         imageUrls.forEach(url => {
             const img = new Image();
             img.onload = () => { loadedCount++; };
-            img.onerror = () => { loadedCount++; console.error("Failed to load image:", url); };
+            img.onerror = () => { loadedCount++; };
             img.src = url;
             mapImages.push(img);
         });
@@ -332,6 +332,7 @@
             messageSubtitle.innerText = subtitle;
             messageOverlay.classList.remove('hidden');
             if (animationId) cancelAnimationFrame(animationId);
+            animationId = null;
         }
 
         function addFloatingText(text, x, y, color) {
@@ -379,6 +380,7 @@
                     messageSubtitle.innerText = 'לחץ כדי להמשיך';
                     messageOverlay.classList.remove('hidden');
                     if (animationId) cancelAnimationFrame(animationId);
+                    animationId = null;
                 } else endGame('VICTORY', 'ניצחון מוחלט!', 'סיימת את כל השלבים!');
             }
         }
@@ -386,12 +388,10 @@
         function update() {
             if (gameState !== 'PLAYING') return;
 
-            // שליטה במגע (עקיבה אחרי אצבע)
             if (input.touchX !== null) {
                 let targetX = input.touchX - paddle.w / 2;
-                paddle.x += (targetX - paddle.x) * 0.25; // החלקה של התנועה
+                paddle.x += (targetX - paddle.x) * 0.25; 
             } else {
-                // שליטה במקלדת
                 if (input.left) paddle.x -= paddle.speed;
                 if (input.right) paddle.x += paddle.speed;
             }
@@ -477,23 +477,37 @@
 
             ctx.globalAlpha = 1;
             activePowerups.forEach(p => { ctx.font='28px Arial'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(p.emoji, p.x, p.y); });
-            floatingTexts.forEach(f => { ctx.globalAlpha=f.life; ctx.fillStyle=f.color; ctx.font='bold 20px Rubik'; ctx.textAlign='center'; ctx.fillText(f.text, f.x, f.y); });
+            floatingTexts.forEach(f => { ctx.globalAlpha=f.life; ctx.fillStyle=f.color; ctx.font='bold 22px Rubik'; ctx.textAlign='center'; ctx.fillText(f.text, f.x, f.y); });
         }
 
         function gameLoop() {
-            update(); draw();
-            animationId = requestAnimationFrame(gameLoop);
+            if (gameState === 'PLAYING') {
+                update(); 
+                draw();
+                animationId = requestAnimationFrame(gameLoop);
+            } else {
+                draw();
+            }
         }
 
+        let isHandling = false;
         function handleInteraction(e) {
             if (e) e.preventDefault();
+            if (isHandling) return;
+            isHandling = true;
+            setTimeout(() => { isHandling = false; }, 400);
+
             if (gameState === 'START' || gameState === 'GAMEOVER' || gameState === 'VICTORY') {
-                initGame(true); gameState = 'PLAYING';
+                initGame(true); 
+                gameState = 'PLAYING';
                 messageOverlay.classList.add('hidden');
-                gameLoop();
+                if (!animationId) gameLoop();
             } else if (gameState === 'LEVEL_UP') {
-                currentLevel++; initGame(false); gameState = 'PLAYING';
+                currentLevel++; 
+                initGame(false); 
+                gameState = 'PLAYING';
                 messageOverlay.classList.add('hidden');
+                if (!animationId) gameLoop();
             }
         }
 
@@ -512,8 +526,8 @@
             initStars();
             resize();
             
-            // תמיכה רחבה בהתחלה במובייל
-            messageOverlay.addEventListener('click', handleInteraction);
+            // תמיכה רחבה ומאובטחת למובייל
+            messageOverlay.addEventListener('click', handleInteraction, false);
             messageOverlay.addEventListener('touchstart', handleInteraction, {passive: false});
 
             window.addEventListener('resize', resize);
@@ -542,8 +556,7 @@
                 input.touchX = null;
             }, {passive: false});
 
-            // ציור ראשוני
-            setTimeout(() => { if(gameState === 'START') draw(); }, 100);
+            setTimeout(() => { draw(); }, 200);
         });
     </script>
 </body>
