@@ -18,7 +18,7 @@
             align-items: center;
             font-family: 'Black Ops One', cursive, 'Rubik', sans-serif;
             overflow: hidden;
-            touch-action: none;
+            touch-action: none; /* מונע גלילה ופעולות דפדפן במגע */
         }
 
         #game-wrapper {
@@ -77,13 +77,12 @@
             font-family: 'Black Ops One', system-ui;
         }
 
-        /* מראה אחיד לחיים ללא אימוג'י */
         .lives-box .ui-label {
-            color: #b0d0ff; /* צבע אחיד לשאר התוויות */
+            color: #b0d0ff;
         }
 
         .lives-box .ui-value {
-            color: #ff3366; /* דגש בצבע רק לערך של החיים */
+            color: #ff3366;
             text-shadow: 0 0 12px rgba(255, 51, 102, 0.6);
         }
 
@@ -152,7 +151,7 @@
 
         <div id="message-overlay">
             <div id="message-title">SPACE BREAKER</div>
-            <div id="message-subtitle">לחץ כאן כדי להתחיל</div>
+            <div id="message-subtitle">גע כאן כדי להתחיל</div>
         </div>
     </div>
 
@@ -169,8 +168,12 @@
             "https://static.wixstatic.com/media/b4f4e1_373792108e184f619dd58eb38240044a~mv2.png"
         ];
 
+        // טעינת תמונות עם מנגנון הגנה
+        let loadedCount = 0;
         imageUrls.forEach(url => {
             const img = new Image();
+            img.onload = () => { loadedCount++; };
+            img.onerror = () => { loadedCount++; console.error("Failed to load image:", url); };
             img.src = url;
             mapImages.push(img);
         });
@@ -180,7 +183,7 @@
         let totalBricks = 0, brokenBricks = 0, animationId, screenShake = 0;
 
         const paddle = { w: 100, h: 18, x: 0, y: 0, speed: 6, color: '#cceeff', glow: '#00ccff' };
-        const input = { left: false, right: false };
+        const input = { left: false, right: false, touchX: null };
         const balls = [], bricks = [], particles = [], stars = [], activePowerups = [], floatingTexts = [];
 
         const imageScores = [10, 20, 30, 50];
@@ -239,7 +242,11 @@
         }
 
         function drawImageCover(ctx, img, x, y, w, h) {
-            if (!img.complete) return;
+            if (!img.complete) {
+                ctx.fillStyle = "#333";
+                ctx.fillRect(x, y, w, h);
+                return;
+            }
             const imgRatio = img.width / img.height;
             const targetRatio = w / h;
             let sx, sy, sw, sh;
@@ -274,40 +281,21 @@
             for (let r = 0; r < rows; r++) {
                 for (let c = 0; c < cols; c++) {
                     let shouldPlace = false;
-
                     switch(patternType) {
-                        case 0: // מעוין
-                            if (Math.abs(c - midC) + Math.abs(r - midR) <= 3) shouldPlace = true;
-                            break;
-                        case 1: // פירמידה
-                            if (Math.abs(c - midC) <= r && r < 5) shouldPlace = true;
-                            break;
-                        case 2: // איקס
-                            if (Math.abs(c - midC) === Math.abs(r - midR) && r < 9) shouldPlace = true;
-                            break;
-                        case 3: // טבעת
-                            const dist = Math.hypot(c - midC, r - midR);
-                            if (dist > 1.6 && dist < 3.8) shouldPlace = true;
-                            break;
-                        case 4: // פסים
-                            if (r % 2 === 0 && r < 9 && Math.abs(c - midC) < 4) shouldPlace = true;
-                            break;
+                        case 0: if (Math.abs(c - midC) + Math.abs(r - midR) <= 3) shouldPlace = true; break;
+                        case 1: if (Math.abs(c - midC) <= r && r < 5) shouldPlace = true; break;
+                        case 2: if (Math.abs(c - midC) === Math.abs(r - midR) && r < 9) shouldPlace = true; break;
+                        case 3: const d = Math.hypot(c - midC, r - midR); if (d > 1.6 && d < 3.8) shouldPlace = true; break;
+                        case 4: if (r % 2 === 0 && r < 9 && Math.abs(c - midC) < 4) shouldPlace = true; break;
                     }
-
                     if (!shouldPlace) continue;
 
                     let effect = 'normal', emoji = '', isGrey = (Math.random() < 0.12);
                     let hp = isGrey ? 2 : 1;
-                    
                     if (!isGrey && Math.random() < 0.28) {
-                        if (Math.random() < 0.45) {
-                            effect = 'bomb'; emoji = '💣';
-                        } else {
-                            let p = specialEffects[Math.floor(Math.random() * specialEffects.length)];
-                            effect = p.id; emoji = p.emoji;
-                        }
+                        if (Math.random() < 0.45) { effect = 'bomb'; emoji = '💣'; }
+                        else { let p = specialEffects[Math.floor(Math.random() * specialEffects.length)]; effect = p.id; emoji = p.emoji; }
                     }
-
                     bricks.push({
                         x: offsetLeft + padding + c * (cellWidth + padding),
                         y: offsetTop + r * (cellWidth + padding),
@@ -317,23 +305,15 @@
                     });
                 }
             }
-            
             if (bricks.length === 0) return initLevel(level);
-
             totalBricks = bricks.filter(b => !b.isGrey).length;
-            if (totalBricks === 0) {
-                bricks[0].isGrey = false;
-                bricks[0].hp = 1;
-                totalBricks = 1;
-            }
+            if (totalBricks === 0) { bricks[0].isGrey = false; bricks[0].hp = 1; totalBricks = 1; }
             brokenBricks = 0;
             updateUI();
         }
 
         function initGame(levelReset = false) {
-            if (levelReset) {
-                currentLevel = 1; score = 0; lives = 3;
-            }
+            if (levelReset) { currentLevel = 1; score = 0; lives = 3; }
             screenShake = 0;
             particles.length = 0;
             floatingTexts.length = 0;
@@ -376,7 +356,6 @@
         function destroyBrick(br) {
             if (br.status === 0) return;
             br.status = 0;
-            
             if (br.effect === 'bomb') {
                 screenShake = 20;
                 addFloatingText('בום!', br.x + br.w/2, br.y, '#ff3300');
@@ -392,7 +371,6 @@
                 if (!br.isGrey) brokenBricks++;
                 if (br.effect !== 'normal') activePowerups.push({ x: br.x + br.w/2, y: br.y + br.h/2, dy: 2.0, effect: br.effect, emoji: br.emoji });
             }
-            
             updateUI();
             if (brokenBricks >= totalBricks && gameState === 'PLAYING') {
                 if (currentLevel < maxLevels) {
@@ -408,8 +386,15 @@
         function update() {
             if (gameState !== 'PLAYING') return;
 
-            if (input.left) paddle.x -= paddle.speed;
-            if (input.right) paddle.x += paddle.speed;
+            // שליטה במגע (עקיבה אחרי אצבע)
+            if (input.touchX !== null) {
+                let targetX = input.touchX - paddle.w / 2;
+                paddle.x += (targetX - paddle.x) * 0.25; // החלקה של התנועה
+            } else {
+                // שליטה במקלדת
+                if (input.left) paddle.x -= paddle.speed;
+                if (input.right) paddle.x += paddle.speed;
+            }
             paddle.x = Math.max(0, Math.min(cw - paddle.w, paddle.x));
 
             particles.forEach((p, i) => { p.x += p.vx; p.y += p.vy; p.life -= 0.025; if(p.life <= 0) particles.splice(i, 1); });
@@ -500,7 +485,8 @@
             animationId = requestAnimationFrame(gameLoop);
         }
 
-        function handleInteraction() {
+        function handleInteraction(e) {
+            if (e) e.preventDefault();
             if (gameState === 'START' || gameState === 'GAMEOVER' || gameState === 'VICTORY') {
                 initGame(true); gameState = 'PLAYING';
                 messageOverlay.classList.add('hidden');
@@ -525,30 +511,39 @@
 
             initStars();
             resize();
+            
+            // תמיכה רחבה בהתחלה במובייל
             messageOverlay.addEventListener('click', handleInteraction);
+            messageOverlay.addEventListener('touchstart', handleInteraction, {passive: false});
+
             window.addEventListener('resize', resize);
             window.addEventListener('keydown', e => { if(e.key.includes('Left')) input.left=true; if(e.key.includes('Right')) input.right=true; });
             window.addEventListener('keyup', e => { if(e.key.includes('Left')) input.left=false; if(e.key.includes('Right')) input.right=false; });
             
-            const touchHandler = e => {
-                e.preventDefault();
+            const getTouchX = e => {
                 const rect = canvas.getBoundingClientRect();
-                const touchX = e.touches[0].clientX - rect.left;
-                if (touchX < cw/2) input.left = true; else input.right = true;
+                const touch = e.touches[0];
+                return touch.clientX - rect.left;
             };
-            wrapper.addEventListener('touchstart', touchHandler, {passive: false});
-            wrapper.addEventListener('touchmove', touchHandler, {passive: false});
-            wrapper.addEventListener('touchend', () => { input.left = false; input.right = false; });
 
-            let loadedCount = 0;
-            function checkAllLoaded() {
-                loadedCount++;
-                if (loadedCount >= mapImages.length) draw();
-            }
-            mapImages.forEach(img => {
-                img.onload = checkAllLoaded;
-                if (img.complete) checkAllLoaded();
-            });
+            wrapper.addEventListener('touchstart', e => {
+                if (gameState !== 'PLAYING') return;
+                e.preventDefault();
+                input.touchX = getTouchX(e);
+            }, {passive: false});
+
+            wrapper.addEventListener('touchmove', e => {
+                if (gameState !== 'PLAYING') return;
+                e.preventDefault();
+                input.touchX = getTouchX(e);
+            }, {passive: false});
+
+            wrapper.addEventListener('touchend', () => {
+                input.touchX = null;
+            }, {passive: false});
+
+            // ציור ראשוני
+            setTimeout(() => { if(gameState === 'START') draw(); }, 100);
         });
     </script>
 </body>
