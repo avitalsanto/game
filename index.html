@@ -3,556 +3,567 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>משחק טיל חלל ניאון</title>
-    <link href="https://fonts.googleapis.com/css2?family=Varela+Round&display=swap" rel="stylesheet">
+    <title>Space Breaker Israel - War Edition</title>
     <style>
-        /* איפוס מלא למידות העמוד */
-        html, body {
+        @import url('https://fonts.googleapis.com/css2?family=Black+Ops+One&family=Rubik:wght@500;700&display=swap');
+
+        body, html {
             margin: 0;
             padding: 0;
             width: 100%;
             height: 100%;
-            background-color: #080718;
-            overflow: hidden;
-            font-family: 'Varela Round', system-ui, sans-serif;
-            color: white;
-            touch-action: none; 
-        }
-
-        /* רקע כוכבים זז */
-        #space-background {
-            position: absolute;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background-image: 
-                radial-gradient(2px 2px at 20px 30px, #00E5FF, rgba(0,0,0,0)),
-                radial-gradient(2px 2px at 40px 70px, #FFF, rgba(0,0,0,0)),
-                radial-gradient(2px 2px at 50px 160px, #FF1ECA, rgba(0,0,0,0)),
-                radial-gradient(2px 2px at 90px 40px, #FFF, rgba(0,0,0,0)),
-                radial-gradient(2px 2px at 130px 80px, #FFB300, rgba(0,0,0,0)),
-                radial-gradient(2px 2px at 160px 120px, #00E5FF, rgba(0,0,0,0));
-            background-repeat: repeat;
-            background-size: 200px 200px;
-            animation: stars-scroll 8s linear infinite; /* אטי יותר */
-            opacity: 0.6;
-            z-index: 0;
-        }
-
-        @keyframes stars-scroll {
-            0% { transform: translateY(-200px); }
-            100% { transform: translateY(0); }
-        }
-
-        #game-area {
-            position: absolute;
-            top: 0; left: 0; right: 0; bottom: 0;
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-            z-index: 1;
-        }
-
-        #player {
-            position: absolute;
-            top: 0; left: 0; 
-            width: 60px; 
-            height: 100px;
-            z-index: 10;
-            will-change: transform;
-        }
-
-        #player svg {
-            position: absolute;
-            width: 200px;
-            height: 320px;
-            top: -90px;
-            left: -70px;
-            pointer-events: none;
-            filter: drop-shadow(0 0 8px rgba(255, 30, 202, 0.8)) drop-shadow(0 0 15px rgba(0, 229, 255, 0.4));
-        }
-
-        .game-object {
-            position: absolute;
-            top: 0; left: 0; 
-            z-index: 5;
+            background-color: #000000;
             display: flex;
             justify-content: center;
             align-items: center;
-            will-change: transform;
+            font-family: 'Black Ops One', cursive, 'Rubik', sans-serif;
+            overflow: hidden;
+            touch-action: none; /* מונע גלילה ופעולות דפדפן במגע */
         }
 
-        @keyframes spin {
-            100% { transform: rotate(360deg); }
-        }
-        
-        @keyframes pulse-plasma {
-            0% { transform: scale(0.95); opacity: 0.8; }
-            100% { transform: scale(1.05); opacity: 1; }
+        #game-wrapper {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            max-width: 500px;
+            background: #000000;
+            box-shadow: 0 0 20px rgba(0, 150, 255, 0.2);
+            overflow: hidden;
         }
 
-        #score-board {
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at center, #001a33 0%, #000 100%);
+        }
+
+        /* --- ממשק משתמש אחיד ומיושר --- */
+        #ui-layer {
             position: absolute;
-            top: 20px;
-            left: 20px;
-            font-size: 24px;
-            font-weight: bold;
-            color: #00E5FF;
-            text-shadow: 0 0 10px #00E5FF;
-            z-index: 100;
-        }
-
-        .floating-score {
-            position: absolute;
-            color: #00FF66;
-            font-size: 20px;
-            font-weight: bold;
-            text-shadow: 0 0 10px #00FF66;
-            animation: floatUp 1s ease-out forwards;
+            top: 0;
+            left: 0;
+            width: 100%;
+            padding: 20px 10px;
+            box-sizing: border-box;
+            display: flex;
+            justify-content: space-around;
+            align-items: flex-start;
             pointer-events: none;
-            z-index: 15;
+            z-index: 10;
+            color: white;
         }
 
-        @keyframes floatUp {
-            0% { transform: translateY(0) scale(1); opacity: 1; }
-            100% { transform: translateY(-30px) scale(1.5); opacity: 0; }
+        .ui-box {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            min-width: 55px;
         }
 
-        .overlay {
+        .ui-label {
+            font-size: 9px;
+            color: #b0d0ff;
+            margin-bottom: 2px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 500;
+        }
+
+        .ui-value {
+            font-size: 16px;
+            text-shadow: 0 0 10px #fff;
+            font-family: 'Black Ops One', system-ui;
+        }
+
+        .lives-box .ui-label {
+            color: #b0d0ff;
+        }
+
+        .lives-box .ui-value {
+            color: #ff3366;
+            text-shadow: 0 0 12px rgba(255, 51, 102, 0.6);
+        }
+
+        #message-overlay {
             position: absolute;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(8, 7, 24, 0.9);
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 5, 20, 0.95);
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            z-index: 200;
-        }
-
-        h1 {
-            color: #FF1ECA;
-            text-shadow: 0 0 15px #FF1ECA, 0 0 30px #6A1BFF;
-            font-size: 3.5rem;
-            margin-bottom: 10px;
-            text-align: center;
-        }
-
-        p {
-            font-size: 1.2rem;
-            margin-bottom: 20px;
-            text-align: center;
-            color: #ccc;
-            padding: 0 20px;
-            line-height: 1.6;
-        }
-
-        .legend {
-            display: flex;
-            gap: 15px;
-            margin-bottom: 20px;
-            font-size: 0.9rem;
-        }
-        
-        .legend-item {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
-
-        .warning-text {
-            color: #FF1ECA;
-            font-weight: bold;
-            font-size: 1.1rem;
-            background-color: rgba(255, 30, 202, 0.1);
-            padding: 8px 15px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-            border: 2px dashed #FF1ECA;
-            text-shadow: 0 0 5px #FF1ECA;
-        }
-
-        .btn {
-            background: linear-gradient(45deg, #FF1ECA, #4A00E0);
+            z-index: 50; /* הגבהת שכבת ההודעות */
             color: white;
-            padding: 15px 40px;
-            border-radius: 50px;
-            font-size: 1.5rem;
-            font-family: inherit;
-            font-weight: bold;
+            text-align: center;
             cursor: pointer;
-            box-shadow: 0 0 20px rgba(255, 30, 202, 0.6);
-            transition: all 0.3s ease;
-            border: 2px solid #FF1ECA;
-            margin: 10px;
+            pointer-events: auto; /* מוודא שהאירועים נקלטים */
         }
 
-        .btn:hover:not(.disabled) {
-            transform: scale(1.05);
-            box-shadow: 0 0 30px rgba(255, 30, 202, 0.9);
+        #message-title {
+            font-size: 32px;
+            color: #00e5ff;
+            text-shadow: 0 0 20px #00e5ff;
+            margin-bottom: 10px;
         }
 
-        .btn.disabled {
-            background: #2a2a3a;
-            color: #666;
-            cursor: not-allowed;
-            transform: none;
-            box-shadow: none;
-            border-color: #444;
+        #message-subtitle {
+            font-size: 18px;
+            color: #b0d0ff;
+            font-family: 'Rubik', sans-serif;
+            animation: pulse 1.5s infinite;
         }
 
-        .upload-label {
-            background: transparent;
-            border: 2px solid #00E5FF;
-            color: #00E5FF;
-            font-size: 1.1rem;
-            padding: 10px 20px;
-            box-shadow: 0 0 10px rgba(0, 229, 255, 0.3);
-            text-shadow: 0 0 5px #00E5FF;
-        }
+        @keyframes pulse { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
 
         .hidden { display: none !important; }
     </style>
 </head>
 <body>
 
-    <div id="space-background"></div>
+    <div id="game-wrapper">
+        <div id="ui-layer" dir="ltr">
+            <div class="ui-box">
+                <div class="ui-label">SCORE</div>
+                <div class="ui-value" id="scoreEl">0</div>
+            </div>
+            
+            <div class="ui-box">
+                <div class="ui-label">LEVEL</div>
+                <div class="ui-value" id="levelEl">1/10</div>
+            </div>
 
-    <div id="game-area">
-        <div id="player">
-            <svg viewBox="150 100 500 800" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
-                <defs>
-                    <linearGradient id="hull-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-                        <stop offset="0%" stop-color="#FF1ECA" /><stop offset="50%" stop-color="#6A1BFF" /><stop offset="100%" stop-color="#0E007A" />
-                    </linearGradient>
-                    <linearGradient id="left-fin-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-                        <stop offset="0%" stop-color="#FF1ECA" /><stop offset="100%" stop-color="#4A00E0" />
-                    </linearGradient>
-                    <linearGradient id="right-fin-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-                        <stop offset="0%" stop-color="#8E2DE2" /><stop offset="100%" stop-color="#0E007A" />
-                    </linearGradient>
-                    <linearGradient id="window-ring-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-                        <stop offset="0%" stop-color="#FF1ECA" /><stop offset="100%" stop-color="#FF6A00" />
-                    </linearGradient>
-                    <linearGradient id="flame-outer" x1="0%" y1="0%" x2="0%" y2="100%">
-                        <stop offset="0%" stop-color="#FF1ECA" /><stop offset="30%" stop-color="#FF4000" /><stop offset="100%" stop-color="#FFB300" />
-                    </linearGradient>
-                    <linearGradient id="flame-inner" x1="0%" y1="0%" x2="0%" y2="100%">
-                        <stop offset="0%" stop-color="#FFB300" /><stop offset="100%" stop-color="#FFFF66" />
-                    </linearGradient>
-                    <linearGradient id="hull-stroke-grad" x1="0%" y1="0%" x2="100%" y2="0%">
-                        <stop offset="0%" stop-color="#FF1ECA" /><stop offset="35%" stop-color="#FF1ECA" stop-opacity="0" />
-                        <stop offset="65%" stop-color="#00E5FF" stop-opacity="0" /><stop offset="100%" stop-color="#00E5FF" stop-opacity="0.8" />
-                    </linearGradient>
-                    <clipPath id="window-clip">
-                        <circle cx="400" cy="350" r="66" />
-                    </clipPath>
-                </defs>
+            <div class="ui-box lives-box">
+                <div class="ui-label">LIVES</div>
+                <div class="ui-value" id="livesEl">3</div>
+            </div>
 
-                <g>
-                    <!-- אש -->
-                    <g class="flame-group">
-                        <path class="flame" d="M 370 570 C 320 750, 400 880, 400 880 C 400 880, 480 750, 430 570 Z" fill="url(#flame-outer)" />
-                        <path class="flame-inner" d="M 385 570 C 360 680, 400 800, 400 800 C 400 800, 440 680, 415 570 Z" fill="url(#flame-inner)" />
-                    </g>
-                    <path d="M 470 400 C 650 430, 650 560, 610 610 C 550 600, 490 570, 470 520 Z" fill="none" stroke="#4A00E0" stroke-width="8" stroke-linejoin="round" />
-                    <path d="M 470 400 C 650 430, 650 560, 610 610 C 550 600, 490 570, 470 520 Z" fill="url(#right-fin-grad)" />
-                    <path d="M 390 540 C 390 540, 400 630, 400 640 C 400 630, 410 540, 410 540 Z" fill="#2B117A" />
-                    <path d="M 360 540 L 440 540 L 420 590 L 380 590 Z" fill="none" stroke="url(#hull-stroke-grad)" stroke-width="4" stroke-linejoin="round" />
-                    <path d="M 360 540 L 440 540 L 420 590 L 380 590 Z" fill="#140D5C" />
-                    <path d="M 330 400 C 150 430, 150 560, 190 610 C 250 600, 310 570, 330 520 Z" fill="none" stroke="#FF1ECA" stroke-width="8" stroke-linejoin="round" />
-                    <path d="M 330 400 C 150 430, 150 560, 190 610 C 250 600, 310 570, 330 520 Z" fill="url(#left-fin-grad)" />
-                    <path d="M 400 120 C 580 250, 540 520, 460 550 C 430 570, 370 570, 340 550 C 260 520, 220 250, 400 120 Z" fill="none" stroke="url(#hull-stroke-grad)" stroke-width="12" stroke-linejoin="round" />
-                    <path d="M 400 120 C 580 250, 540 520, 460 550 C 430 570, 370 570, 340 550 C 260 520, 220 250, 400 120 Z" fill="url(#hull-grad)" />
-                    
-                    <circle cx="400" cy="350" r="75" fill="#080718" stroke="url(#window-ring-grad)" stroke-width="14" />
-                    <circle cx="400" cy="350" r="66" fill="#0D113A" />
-                    
-                    <image id="user-photo" 
-                           href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='%231a1a2e'/><text x='50' y='65' font-family='sans-serif' font-weight='bold' font-size='40' fill='%23FF1ECA' text-anchor='middle'>?</text></svg>" 
-                           xlink:href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='%231a1a2e'/><text x='50' y='65' font-family='sans-serif' font-weight='bold' font-size='40' fill='%23FF1ECA' text-anchor='middle'>?</text></svg>"
-                           x="334" y="284" width="132" height="132" 
-                           clip-path="url(#window-clip)" 
-                           preserveAspectRatio="xMidYMid slice" />
-                    <path d="M 355 315 A 50 50 0 0 1 435 305 A 65 65 0 0 0 365 365 Z" fill="#FFFFFF" opacity="0.25" />
-                </g>
-            </svg>
-        </div>
-    </div>
-
-    <div id="score-board" class="hidden">נקודות: <span id="score">0</span></div>
-
-    <div id="start-screen" class="overlay">
-        <h1>טיל הניאון</h1>
-        <p>
-            <b>אסוף את הבונוסים הזוהרים:</b><br>
-            <span style="color:#00E5FF;">יהלום (10)</span> | <span style="color:#FFB300;">כוכב זהב (20)</span> | <span style="color:#00FF66;">סוללה (5)</span>
-            <br><br>
-            <b>והיזהר מהמכשולים בחלל:</b><br>
-            <span style="color:#FF1ECA;">מטאור</span> | <span style="color:#FF0055;">מוקש חייזרים</span> | <span style="color:#FF0000;">כדור פלזמה</span>
-        </p>
-        
-        <div id="upload-warning" class="warning-text">
-            * חובה להעלות תמונה כדי להתחיל!
+            <div class="ui-box">
+                <div class="ui-label">TARGET</div>
+                <div class="ui-value" id="targetEl">0/0</div>
+            </div>
         </div>
 
-        <label for="image-upload" class="btn upload-label">📸 בחר תמונה לחללית</label>
-        <input type="file" id="image-upload" accept="image/*" style="display: none;">
-        
-        <button id="start-btn" class="btn disabled" disabled onclick="startGame()">שגר חללית 🚀</button>
-    </div>
+        <canvas id="gameCanvas"></canvas>
 
-    <div id="game-over-screen" class="overlay hidden">
-        <h1 style="color:#FF1ECA;">התרסקות!</h1>
-        <p>פגעת במכשול...<br>הצלחת לאסוף <strong id="final-score" style="color:#00E5FF; font-size:1.5em; text-shadow:0 0 10px #00E5FF;">0</strong> נקודות.</p>
-        <button class="btn" onclick="startGame()">שחק שוב 🔄</button>
-        <button class="btn upload-label" style="font-size: 1.2rem; padding: 10px 20px; border-radius: 50px;" onclick="location.reload()">החלף תמונה</button>
+        <div id="message-overlay">
+            <div id="message-title">SPACE BREAKER</div>
+            <div id="message-subtitle">גע כאן כדי להתחיל</div>
+        </div>
     </div>
 
     <script>
-        const gameArea = document.getElementById('game-area');
-        const playerEl = document.getElementById('player');
-        const scoreEl = document.getElementById('score');
-        const finalScoreEl = document.getElementById('final-score');
-        const startScreen = document.getElementById('start-screen');
-        const gameOverScreen = document.getElementById('game-over-screen');
-        const scoreBoard = document.getElementById('score-board');
-        const startBtn = document.getElementById('start-btn');
-        const uploadWarning = document.getElementById('upload-warning');
+        // --- 1. הגדרות משתנים גלובליים ---
+        let canvas, ctx, wrapper;
+        let scoreEl, livesEl, levelEl, targetEl, messageOverlay, messageTitle, messageSubtitle;
 
-        let isPlaying = false;
-        let score = 0;
-        let animationFrameId;
-        
-        // מהירות משחק התחלתית (איטית מאוד ורגועה)
-        let gameSpeed = 2.0; 
-        let frameCount = 0;
-        let objects = [];
+        const mapImages = [];
+        const imageUrls = [
+            "https://static.wixstatic.com/media/b4f4e1_3f1c67474e39458185c457978bfa1873~mv2.jpg",
+            "https://static.wixstatic.com/media/b4f4e1_da693f31949f4d49ae9efba09705ad8f~mv2.webp",
+            "https://static.wixstatic.com/media/b4f4e1_4340f5cc43134b288e3ba0668be91eec~mv2.png",
+            "https://static.wixstatic.com/media/b4f4e1_373792108e184f619dd58eb38240044a~mv2.png"
+        ];
 
-        let player = { x: 0, y: 0, width: 60, height: 100, speed: 7 };
-
-        function updateInitialPosition() {
-            const screenW = window.innerWidth || document.documentElement.clientWidth || 500;
-            const screenH = window.innerHeight || document.documentElement.clientHeight || 800;
-            player.x = (screenW / 2) - (player.width / 2);
-            player.y = screenH - 150;
-            playerEl.style.transform = `translate(${player.x}px, ${player.y}px)`;
-        }
-
-        updateInitialPosition();
-        window.addEventListener('resize', updateInitialPosition);
-
-        const keys = { ArrowUp: false, ArrowDown: false, ArrowLeft: false, ArrowRight: false };
-        window.addEventListener('keydown', (e) => { if(keys.hasOwnProperty(e.code)) keys[e.code] = true; });
-        window.addEventListener('keyup', (e) => { if(keys.hasOwnProperty(e.code)) keys[e.code] = false; });
-
-        let isDragging = false;
-        window.addEventListener('touchstart', (e) => {
-            if(!isPlaying) return;
-            isDragging = true;
-            updateTouchPos(e.touches[0]);
-        }, {passive: false});
-        
-        window.addEventListener('touchmove', (e) => {
-            if(!isPlaying || !isDragging) return;
-            e.preventDefault(); 
-            updateTouchPos(e.touches[0]);
-        }, {passive: false});
-
-        window.addEventListener('touchend', () => isDragging = false);
-
-        function updateTouchPos(touch) {
-            player.x = touch.clientX - player.width / 2;
-            player.y = touch.clientY - player.height / 2 - 40; 
-        }
-
-        const imageUpload = document.getElementById('image-upload');
-        const userPhoto = document.getElementById('user-photo');
-
-        imageUpload.addEventListener('change', function(event) {
-            const file = event.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    userPhoto.setAttribute('href', e.target.result);
-                    userPhoto.setAttribute('xlink:href', e.target.result);
-                    
-                    startBtn.disabled = false;
-                    startBtn.classList.remove('disabled');
-                    
-                    uploadWarning.style.display = 'none';
-                    document.querySelector('.upload-label').innerHTML = '✅ תמונה הועלתה בהצלחה!';
-                    document.querySelector('.upload-label').style.borderColor = '#FF1ECA';
-                    document.querySelector('.upload-label').style.color = '#FF1ECA';
-                    document.querySelector('.upload-label').style.textShadow = '0 0 5px #FF1ECA';
-                }
-                reader.readAsDataURL(file);
-            }
+        let loadedCount = 0;
+        imageUrls.forEach(url => {
+            const img = new Image();
+            img.onload = () => { loadedCount++; };
+            img.onerror = () => { loadedCount++; };
+            img.src = url;
+            mapImages.push(img);
         });
 
-        function startGame() {
-            startScreen.classList.add('hidden');
-            gameOverScreen.classList.add('hidden');
-            scoreBoard.classList.remove('hidden');
-            
-            score = 0;
-            gameSpeed = 2.0; // אתחול מחדש למהירות נמוכה מאוד
-            frameCount = 0;
-            scoreEl.innerText = score;
-            
-            objects.forEach(obj => obj.el.remove());
-            objects = [];
-            
-            updateInitialPosition(); 
-            isPlaying = true;
-            gameLoop();
-        }
+        let cw, ch, gameState = 'START', score = 0, lives = 3, currentLevel = 1;
+        const maxLevels = 10;
+        let totalBricks = 0, brokenBricks = 0, animationId, screenShake = 0;
 
-        // הגדרת האובייקטים הגרפיים השונים (SVGs)
-        const diamondSVG = `<svg viewBox="0 0 100 100" style="width:100%; height:100%; filter: drop-shadow(0 0 8px #00E5FF) drop-shadow(0 0 15px #00E5FF);"><polygon points="50,10 90,40 50,90 10,40" fill="rgba(0, 229, 255, 0.2)" stroke="#00E5FF" stroke-width="6" stroke-linejoin="round"/><polygon points="50,10 90,40 50,45 10,40" fill="none" stroke="#00E5FF" stroke-width="4" stroke-linejoin="round"/><polygon points="50,45 90,40 50,90" fill="rgba(0, 229, 255, 0.4)" stroke="#00E5FF" stroke-width="4" stroke-linejoin="round"/></svg>`;
-        const starSVG = `<svg viewBox="0 0 100 100" style="width:100%; height:100%; filter: drop-shadow(0 0 8px #FFB300) drop-shadow(0 0 15px #FFB300);"><polygon points="50,5 61,35 95,35 67,55 78,85 50,65 22,85 33,55 5,35 39,35" fill="rgba(255, 179, 0, 0.3)" stroke="#FFB300" stroke-width="5" stroke-linejoin="round"/></svg>`;
-        const energySVG = `<svg viewBox="0 0 100 100" style="width:100%; height:100%; filter: drop-shadow(0 0 8px #00FF66) drop-shadow(0 0 15px #00FF66);"><rect x="30" y="20" width="40" height="60" rx="10" fill="rgba(0, 255, 102, 0.2)" stroke="#00FF66" stroke-width="5"/><rect x="40" y="10" width="20" height="10" rx="4" fill="#00FF66" /><path d="M 45 35 L 40 50 L 52 50 L 45 70" stroke="#00FF66" stroke-width="4" fill="#00FF66" stroke-linejoin="round"/></svg>`;
+        const paddle = { w: 100, h: 18, x: 0, y: 0, speed: 6, color: '#cceeff', glow: '#00ccff' };
+        const input = { left: false, right: false, touchX: null };
+        const balls = [], bricks = [], particles = [], stars = [], activePowerups = [], floatingTexts = [];
 
-        const rockSVG = `<svg viewBox="0 0 100 100" style="width:100%; height:100%; animation: spin 4s linear infinite; filter: drop-shadow(0 0 8px #FF1ECA) drop-shadow(0 0 12px #FF4000);"><path d="M 25 20 C 10 30 5 60 20 80 C 40 100 70 95 85 75 C 100 50 90 20 60 10 C 40 5 35 15 25 20 Z" fill="#180B2B" stroke="#FF1ECA" stroke-width="5" stroke-linejoin="round"/><ellipse cx="40" cy="45" rx="10" ry="12" fill="none" stroke="#FF4000" stroke-width="3" /><ellipse cx="70" cy="60" rx="8" ry="6" fill="none" stroke="#FF4000" stroke-width="3" /><ellipse cx="65" cy="25" rx="6" ry="8" fill="none" stroke="#FF4000" stroke-width="3" /></svg>`;
-        const mineSVG = `<svg viewBox="0 0 100 100" style="width:100%; height:100%; animation: spin 6s linear infinite; filter: drop-shadow(0 0 8px #FF0055) drop-shadow(0 0 12px #FF0055);"><circle cx="50" cy="50" r="25" fill="#180B2B" stroke="#FF0055" stroke-width="5"/><line x1="50" y1="5" x2="50" y2="25" stroke="#FF0055" stroke-width="6" stroke-linecap="round"/><line x1="50" y1="95" x2="50" y2="75" stroke="#FF0055" stroke-width="6" stroke-linecap="round"/><line x1="5" y1="50" x2="25" y2="50" stroke="#FF0055" stroke-width="6" stroke-linecap="round"/><line x1="95" y1="50" x2="75" y2="50" stroke="#FF0055" stroke-width="6" stroke-linecap="round"/><line x1="18" y1="18" x2="32" y2="32" stroke="#FF0055" stroke-width="6" stroke-linecap="round"/><line x1="82" y1="82" x2="68" y2="68" stroke="#FF0055" stroke-width="6" stroke-linecap="round"/><line x1="82" y1="18" x2="68" y2="32" stroke="#FF0055" stroke-width="6" stroke-linecap="round"/><line x1="18" y1="82" x2="32" y2="68" stroke="#FF0055" stroke-width="6" stroke-linecap="round"/><circle cx="50" cy="50" r="10" fill="none" stroke="#FF0055" stroke-width="3"/></svg>`;
-        const plasmaSVG = `<svg viewBox="0 0 100 100" style="width:100%; height:100%; animation: pulse-plasma 0.5s infinite alternate; filter: drop-shadow(0 0 10px #FF0000) drop-shadow(0 0 20px #FF4000);"><circle cx="50" cy="50" r="35" fill="rgba(255, 0, 0, 0.2)" stroke="#FF0000" stroke-width="5" stroke-dasharray="10 5"/><circle cx="50" cy="50" r="20" fill="rgba(255, 64, 0, 0.8)" /><circle cx="50" cy="50" r="10" fill="#FFF" /></svg>`;
+        const imageScores = [10, 20, 30, 50];
 
-        function spawnObject() {
-            const isGood = Math.random() > 0.55; // 45% טובים, 55% רעים
-            const screenW = window.innerWidth || document.documentElement.clientWidth || 500;
-            
-            let objData;
+        const specialEffects = [
+            { id: 'multiball', emoji: '🎖️' },
+            { id: 'expand', emoji: '🛡️' },
+            { id: 'shrink', emoji: '⚠️' },
+            { id: 'life', emoji: '💊' },
+            { id: 'slow', emoji: '❄️' },
+            { id: 'fast', emoji: '⚡' }
+        ];
 
-            if (isGood) {
-                // בחירת בונוס אקראי
-                const goodTypes = [
-                    { id: 'diamond', points: 10, size: 45, svg: diamondSVG, color: '#00E5FF' },
-                    { id: 'star', points: 20, size: 40, svg: starSVG, color: '#FFB300' },
-                    { id: 'energy', points: 5, size: 35, svg: energySVG, color: '#00FF66' }
-                ];
-                objData = goodTypes[Math.floor(Math.random() * goodTypes.length)];
-                objData.isBad = false;
-            } else {
-                // בחירת מכשול אקראי
-                const badTypes = [
-                    { id: 'rock', size: 55, svg: rockSVG },
-                    { id: 'mine', size: 50, svg: mineSVG },
-                    { id: 'plasma', size: 45, svg: plasmaSVG }
-                ];
-                objData = badTypes[Math.floor(Math.random() * badTypes.length)];
-                objData.isBad = true;
+        // --- 2. פונקציות ליבה ---
+
+        function initStars() {
+            stars.length = 0;
+            for(let i=0; i<80; i++) {
+                stars.push({ x: Math.random() * 2000, y: Math.random() * 2000, r: Math.random() * 1.5 + 0.5, alpha: Math.random(), speed: Math.random() * 0.05 + 0.01 });
             }
-
-            const obj = {
-                type: objData.id,
-                isBad: objData.isBad,
-                points: objData.points || 0,
-                color: objData.color || '#FFF',
-                x: Math.random() * (screenW - objData.size - 10),
-                y: -objData.size,
-                width: objData.size,
-                height: objData.size,
-                speed: gameSpeed + (Math.random() * 1.5),
-                el: document.createElement('div')
-            };
-
-            obj.el.className = `game-object ${obj.type}`;
-            obj.el.style.width = `${obj.width}px`;
-            obj.el.style.height = `${obj.height}px`;
-            obj.el.innerHTML = objData.svg;
-            
-            gameArea.appendChild(obj.el);
-            objects.push(obj);
         }
 
-        // אפקט הוספת נקודות מעל החללית
-        function showFloatingScore(amount, color, x, y) {
-            const floatEl = document.createElement('div');
-            floatEl.className = 'floating-score';
-            floatEl.innerText = `+${amount}`;
-            floatEl.style.color = color;
-            floatEl.style.textShadow = `0 0 10px ${color}`;
-            floatEl.style.left = `${x}px`;
-            floatEl.style.top = `${y}px`;
-            gameArea.appendChild(floatEl);
-            
-            setTimeout(() => {
-                floatEl.remove();
-            }, 1000);
+        function resetPaddle() {
+            if (!cw) return;
+            paddle.w = cw * 0.25;
+            paddle.x = (cw - paddle.w) / 2;
+            paddle.y = ch - ch * 0.12;
+            paddle.speed = cw * 0.016; 
         }
 
-        function checkCollision(rect1, rect2) {
-            return (
-                rect1.x < rect2.x + rect2.width - 10 &&
-                rect1.x + rect1.width > rect2.x + 10 &&
-                rect1.y < rect2.y + rect2.height - 10 &&
-                rect1.y + rect1.height > rect2.y + 10
-            );
+        function resize() {
+            if (!wrapper || !canvas) return;
+            cw = wrapper.clientWidth;
+            ch = wrapper.clientHeight;
+            canvas.width = cw;
+            canvas.height = ch;
+            resetPaddle();
         }
 
-        function gameOver() {
-            isPlaying = false;
-            cancelAnimationFrame(animationFrameId);
-            finalScoreEl.innerText = score;
-            gameOverScreen.classList.remove('hidden');
-            scoreBoard.classList.add('hidden');
+        function spawnBall(x, y) {
+            const angle = Math.PI * (1.25 + Math.random() * 0.5);
+            const speed = ch > 800 ? 3.5 : 2.5; 
+            balls.push({ x, y, dx: Math.cos(angle) * speed, dy: Math.sin(angle) * speed, r: 7, speed, trail: [] });
+        }
+
+        function resetBall() {
+            balls.length = 0;
+            spawnBall(paddle.x + paddle.w/2, paddle.y - 15);
+        }
+
+        function updateUI() {
+            if (scoreEl) scoreEl.innerText = score; 
+            if (livesEl) livesEl.innerText = lives;
+            if (levelEl) levelEl.innerText = `${currentLevel}/10`; 
+            if (targetEl) targetEl.innerText = `${brokenBricks}/${totalBricks}`;
+        }
+
+        function drawImageCover(ctx, img, x, y, w, h) {
+            if (!img.complete) {
+                ctx.fillStyle = "#333";
+                ctx.fillRect(x, y, w, h);
+                return;
+            }
+            const imgRatio = img.width / img.height;
+            const targetRatio = w / h;
+            let sx, sy, sw, sh;
+            if (imgRatio > targetRatio) {
+                sh = img.height;
+                sw = img.height * targetRatio;
+                sx = (img.width - sw) / 2;
+                sy = 0;
+            } else {
+                sw = img.width;
+                sh = img.width / targetRatio;
+                sx = 0;
+                sy = (img.height - sh) / 2;
+            }
+            ctx.drawImage(img, sx, sy, sw, sh, x, y, w, h);
+        }
+
+        function initLevel(level) {
+            bricks.length = 0;
+            const cols = 9;
+            const rows = 12;
+            const padding = 5;
+            const offsetTop = ch * 0.18;
+            let cellWidth = (cw - (padding * (cols + 1))) / cols;
+            if (cellWidth > 50) cellWidth = 50;
+            const offsetLeft = (cw - (cols * (cellWidth + padding))) / 2;
+
+            const patternType = level % 5; 
+            const midC = Math.floor(cols / 2);
+            const midR = 4;
+
+            for (let r = 0; r < rows; r++) {
+                for (let c = 0; c < cols; c++) {
+                    let shouldPlace = false;
+                    switch(patternType) {
+                        case 0: if (Math.abs(c - midC) + Math.abs(r - midR) <= 3) shouldPlace = true; break;
+                        case 1: if (Math.abs(c - midC) <= r && r < 5) shouldPlace = true; break;
+                        case 2: if (Math.abs(c - midC) === Math.abs(r - midR) && r < 9) shouldPlace = true; break;
+                        case 3: const d = Math.hypot(c - midC, r - midR); if (d > 1.6 && d < 3.8) shouldPlace = true; break;
+                        case 4: if (r % 2 === 0 && r < 9 && Math.abs(c - midC) < 4) shouldPlace = true; break;
+                    }
+                    if (!shouldPlace) continue;
+
+                    let effect = 'normal', emoji = '', isGrey = (Math.random() < 0.12);
+                    let hp = isGrey ? 2 : 1;
+                    if (!isGrey && Math.random() < 0.28) {
+                        if (Math.random() < 0.45) { effect = 'bomb'; emoji = '💣'; }
+                        else { let p = specialEffects[Math.floor(Math.random() * specialEffects.length)]; effect = p.id; emoji = p.emoji; }
+                    }
+                    bricks.push({
+                        x: offsetLeft + padding + c * (cellWidth + padding),
+                        y: offsetTop + r * (cellWidth + padding),
+                        w: cellWidth, h: cellWidth,
+                        status: 1, hp, maxHp: hp, effect, emoji, isGrey,
+                        imgType: Math.floor(Math.random() * mapImages.length)
+                    });
+                }
+            }
+            if (bricks.length === 0) return initLevel(level);
+            totalBricks = bricks.filter(b => !b.isGrey).length;
+            if (totalBricks === 0) { bricks[0].isGrey = false; bricks[0].hp = 1; totalBricks = 1; }
+            brokenBricks = 0;
+            updateUI();
+        }
+
+        function initGame(levelReset = false) {
+            if (levelReset) { currentLevel = 1; score = 0; lives = 3; }
+            screenShake = 0;
+            particles.length = 0;
+            floatingTexts.length = 0;
+            activePowerups.length = 0;
+            resize(); 
+            initLevel(currentLevel);
+            resetPaddle();
+            resetBall();
+            updateUI();
+        }
+
+        function endGame(state, title, subtitle) {
+            gameState = state;
+            messageTitle.innerText = title;
+            messageTitle.style.color = state === 'VICTORY' ? '#00ffaa' : '#ff3366';
+            messageSubtitle.innerText = subtitle;
+            messageOverlay.classList.remove('hidden');
+            if (animationId) cancelAnimationFrame(animationId);
+            animationId = null;
+        }
+
+        function addFloatingText(text, x, y, color) {
+            floatingTexts.push({ text, x, y, life: 1.0, color });
+        }
+
+        function applyPowerup(effect, x, y) {
+            addFloatingText(effect.toUpperCase() + '!', x, y - 20, '#00ffcc');
+            paddle.glow = '#00ffcc';
+            setTimeout(() => paddle.glow = '#00ccff', 200);
+            switch(effect) {
+                case 'multiball': spawnBall(paddle.x + paddle.w/2, paddle.y - 15); break;
+                case 'expand': paddle.w = Math.min(cw * 0.7, paddle.w + cw * 0.1); break;
+                case 'shrink': paddle.w = Math.max(cw * 0.12, paddle.w - cw * 0.08); break;
+                case 'life': lives++; break;
+                case 'slow': balls.forEach(b => { b.dx *= 0.8; b.dy *= 0.8; }); break;
+                case 'fast': balls.forEach(b => { b.dx *= 1.2; b.dy *= 1.2; }); break;
+            }
+            updateUI();
+        }
+
+        function destroyBrick(br) {
+            if (br.status === 0) return;
+            br.status = 0;
+            if (br.effect === 'bomb') {
+                screenShake = 20;
+                addFloatingText('בום!', br.x + br.w/2, br.y, '#ff3300');
+                for(let i=0; i<15; i++) particles.push({x:br.x+br.w/2, y:br.y+br.h/2, vx:(Math.random()-0.5)*8, vy:(Math.random()-0.5)*8, size:Math.random()*5, color:'#ff4400', life:1});
+                score += 50; brokenBricks++;
+                bricks.forEach(other => {
+                    if (other.status === 1 && Math.hypot((other.x+other.w/2)-(br.x+br.w/2), (other.y+other.h/2)-(br.y+br.h/2)) < br.w*2.8) {
+                        setTimeout(() => destroyBrick(other), 60);
+                    }
+                });
+            } else {
+                for(let i=0; i<8; i++) particles.push({x:br.x+br.w/2, y:br.y+br.h/2, vx:(Math.random()-0.5)*4, vy:(Math.random()-0.5)*4, size:Math.random()*3, color:'#fff', life:1});
+                if (!br.isGrey) brokenBricks++;
+                if (br.effect !== 'normal') activePowerups.push({ x: br.x + br.w/2, y: br.y + br.h/2, dy: 2.0, effect: br.effect, emoji: br.emoji });
+            }
+            updateUI();
+            if (brokenBricks >= totalBricks && gameState === 'PLAYING') {
+                if (currentLevel < maxLevels) {
+                    gameState = 'LEVEL_UP';
+                    messageTitle.innerText = `שלב ${currentLevel} הושלם!`;
+                    messageSubtitle.innerText = 'לחץ כדי להמשיך';
+                    messageOverlay.classList.remove('hidden');
+                    if (animationId) cancelAnimationFrame(animationId);
+                    animationId = null;
+                } else endGame('VICTORY', 'ניצחון מוחלט!', 'סיימת את כל השלבים!');
+            }
+        }
+
+        function update() {
+            if (gameState !== 'PLAYING') return;
+
+            if (input.touchX !== null) {
+                let targetX = input.touchX - paddle.w / 2;
+                paddle.x += (targetX - paddle.x) * 0.25; 
+            } else {
+                if (input.left) paddle.x -= paddle.speed;
+                if (input.right) paddle.x += paddle.speed;
+            }
+            paddle.x = Math.max(0, Math.min(cw - paddle.w, paddle.x));
+
+            particles.forEach((p, i) => { p.x += p.vx; p.y += p.vy; p.life -= 0.025; if(p.life <= 0) particles.splice(i, 1); });
+            floatingTexts.forEach((f, i) => { f.y -= 0.6; f.life -= 0.02; if(f.life <= 0) floatingTexts.splice(i, 1); });
+            activePowerups.forEach((p, i) => { 
+                p.y += p.dy;
+                if (p.y > paddle.y && p.y < paddle.y + paddle.h && p.x > paddle.x && p.x < paddle.x + paddle.w) {
+                    applyPowerup(p.effect, p.x, paddle.y); activePowerups.splice(i, 1);
+                } else if (p.y > ch) activePowerups.splice(i, 1);
+            });
+
+            balls.forEach((b, i) => {
+                b.trail.push({x: b.x, y: b.y}); if(b.trail.length > 8) b.trail.shift();
+                b.x += b.dx; b.y += b.dy;
+                if (b.x < b.r || b.x > cw - b.r) { b.dx *= -1; b.x = b.x < b.r ? b.r : cw - b.r; }
+                if (b.y < b.r) { b.dy *= -1; b.y = b.r; }
+                if (b.y > ch) {
+                    balls.splice(i, 1);
+                    if (balls.length === 0) {
+                        lives--; updateUI();
+                        if (lives <= 0) endGame('GAMEOVER', 'הפסדת!', 'לחץ לנסות שוב');
+                        else { resetBall(); resetPaddle(); }
+                    }
+                    return;
+                }
+                if (b.y + b.r > paddle.y && b.y - b.r < paddle.y + paddle.h && b.x > paddle.x && b.x < paddle.x + paddle.w && b.dy > 0) {
+                    let hit = (b.x - (paddle.x + paddle.w/2)) / (paddle.w/2);
+                    let angle = hit * (Math.PI/3);
+                    let s = Math.hypot(b.dx, b.dy);
+                    b.dx = s * Math.sin(angle); b.dy = -s * Math.cos(angle);
+                }
+                bricks.forEach(br => {
+                    if (br.status === 1 && b.x + b.r > br.x && b.x - b.r < br.x + br.w && b.y + b.r > br.y && b.y - b.r < br.y + br.h) {
+                        if (b.x < br.x || b.x > br.x + br.w) b.dx *= -1; else b.dy *= -1;
+                        const baseVal = imageScores[br.imgType] || 10;
+                        const hitPoints = br.isGrey ? baseVal * 2 : baseVal;
+                        score += hitPoints;
+                        addFloatingText(`+${hitPoints}`, b.x, b.y, br.imgType === 3 ? '#ffcc00' : '#00e5ff');
+                        br.hp--; if(br.hp <= 0) destroyBrick(br);
+                        updateUI();
+                    }
+                });
+            });
+        }
+
+        function draw() {
+            if (!ctx) return;
+            ctx.fillStyle = '#000'; ctx.fillRect(0,0,cw,ch);
+            ctx.save();
+            if(screenShake > 0) { ctx.translate((Math.random()-0.5)*screenShake, (Math.random()-0.5)*screenShake); screenShake *= 0.9; }
+            stars.forEach(s => { ctx.globalAlpha = Math.random()*0.3 + 0.2; ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(s.x%cw, s.y%ch, s.r, 0, Math.PI*2); ctx.fill(); });
+            ctx.restore(); ctx.globalAlpha = 1;
+
+            bricks.forEach(b => {
+                if(b.status === 1) {
+                    ctx.save();
+                    if (b.effect !== 'normal') {
+                        ctx.fillStyle = '#111'; ctx.strokeStyle = '#00e5ff'; ctx.lineWidth = 2;
+                        ctx.beginPath(); ctx.roundRect(b.x, b.y, b.w, b.h, 8); ctx.fill(); ctx.stroke();
+                        ctx.font = '24px Arial'; ctx.textAlign='center'; ctx.textBaseline='middle';
+                        ctx.fillStyle = "white";
+                        ctx.fillText(b.emoji, b.x+b.w/2, b.y+b.h/2);
+                    } else {
+                        if(b.isGrey && b.hp === 1) ctx.globalAlpha = 0.5;
+                        const currentImg = mapImages[b.imgType];
+                        drawImageCover(ctx, currentImg, b.x, b.y, b.w, b.h);
+                    }
+                    ctx.restore();
+                }
+            });
+
+            ctx.shadowBlur = 15; ctx.shadowColor = paddle.glow; ctx.fillStyle = paddle.color;
+            ctx.beginPath(); ctx.roundRect(paddle.x, paddle.y, paddle.w, paddle.h, 10); ctx.fill();
+            ctx.shadowBlur = 0;
+
+            balls.forEach(b => {
+                ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, Math.PI*2); ctx.fill();
+                b.trail.forEach((p, idx) => { ctx.globalAlpha = idx / 20; ctx.beginPath(); ctx.arc(p.x, p.y, b.r * (idx/12), 0, Math.PI*2); ctx.fill(); });
+            });
+
+            ctx.globalAlpha = 1;
+            activePowerups.forEach(p => { ctx.font='28px Arial'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(p.emoji, p.x, p.y); });
+            floatingTexts.forEach(f => { ctx.globalAlpha=f.life; ctx.fillStyle=f.color; ctx.font='bold 22px Rubik'; ctx.textAlign='center'; ctx.fillText(f.text, f.x, f.y); });
         }
 
         function gameLoop() {
-            if (!isPlaying) return;
-
-            const screenW = window.innerWidth || document.documentElement.clientWidth || 500;
-            const screenH = window.innerHeight || document.documentElement.clientHeight || 800;
-
-            if (keys.ArrowLeft) player.x -= player.speed;
-            if (keys.ArrowRight) player.x += player.speed;
-            if (keys.ArrowUp) player.y -= player.speed;
-            if (keys.ArrowDown) player.y += player.speed;
-
-            player.x = Math.max(0, Math.min(screenW - player.width, player.x));
-            player.y = Math.max(0, Math.min(screenH - player.height, player.y));
-
-            playerEl.style.transform = `translate(${player.x}px, ${player.y}px)`;
-
-            frameCount++;
-            
-            // קצב יצירה איטי בהרבה כדי שהמסך לא יהיה עמוס מדי
-            let spawnRate = Math.max(50, 110 - Math.floor(score / 3)); 
-            if (frameCount % spawnRate === 0) spawnObject();
-            
-            // עליית קושי הדרגתית ונוחה מאוד (כדי לשמור על קצב רגוע)
-            if (frameCount % 800 === 0) gameSpeed += 0.2; 
-
-            for (let i = objects.length - 1; i >= 0; i--) {
-                const obj = objects[i];
-                obj.y += obj.speed;
-                obj.el.style.transform = `translate(${obj.x}px, ${obj.y}px)`;
-
-                if (checkCollision(player, obj)) {
-                    if (obj.isBad) {
-                        gameOver();
-                        return;
-                    } else {
-                        score += obj.points;
-                        scoreEl.innerText = score;
-                        scoreBoard.style.transform = "scale(1.3)";
-                        setTimeout(() => scoreBoard.style.transform = "scale(1)", 150);
-                        
-                        // הצגת מספר הנקודות הצף מעל החללית
-                        showFloatingScore(obj.points, obj.color, obj.x, obj.y);
-                        
-                        obj.el.remove();
-                        objects.splice(i, 1);
-                        continue;
-                    }
-                }
-
-                if (obj.y > screenH) {
-                    obj.el.remove();
-                    objects.splice(i, 1);
-                }
+            if (gameState === 'PLAYING') {
+                update(); 
+                draw();
+                animationId = requestAnimationFrame(gameLoop);
+            } else {
+                draw();
             }
-
-            animationFrameId = requestAnimationFrame(gameLoop);
         }
 
+        let isHandling = false;
+        function handleInteraction(e) {
+            if (e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+            if (isHandling) return;
+            isHandling = true;
+            setTimeout(() => { isHandling = false; }, 500);
+
+            if (gameState === 'START' || gameState === 'GAMEOVER' || gameState === 'VICTORY') {
+                initGame(true); 
+                gameState = 'PLAYING';
+                messageOverlay.classList.add('hidden');
+                if (!animationId) gameLoop();
+            } else if (gameState === 'LEVEL_UP') {
+                currentLevel++; 
+                initGame(false); 
+                gameState = 'PLAYING';
+                messageOverlay.classList.add('hidden');
+                if (!animationId) gameLoop();
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            canvas = document.getElementById('gameCanvas');
+            ctx = canvas.getContext('2d', { alpha: false });
+            wrapper = document.getElementById('game-wrapper');
+            scoreEl = document.getElementById('scoreEl');
+            livesEl = document.getElementById('livesEl');
+            levelEl = document.getElementById('levelEl');
+            targetEl = document.getElementById('targetEl');
+            messageOverlay = document.getElementById('message-overlay');
+            messageTitle = document.getElementById('message-title');
+            messageSubtitle = document.getElementById('message-subtitle');
+
+            initStars();
+            resize();
+            
+            // מנגנון Pointer המאוחד למובייל ודסקטופ
+            messageOverlay.addEventListener('pointerdown', handleInteraction, { capture: true, passive: false });
+
+            window.addEventListener('resize', resize);
+            window.addEventListener('keydown', e => { if(e.key.includes('Left')) input.left=true; if(e.key.includes('Right')) input.right=true; });
+            window.addEventListener('keyup', e => { if(e.key.includes('Left')) input.left=false; if(e.key.includes('Right')) input.right=false; });
+            
+            const getTouchX = e => {
+                const rect = canvas.getBoundingClientRect();
+                const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+                return clientX - rect.left;
+            };
+
+            // שימוש ב-Event Listeners על ה-wrapper לשליטה במגש
+            wrapper.addEventListener('pointerdown', e => {
+                if (gameState !== 'PLAYING') return;
+                input.touchX = (e.touches ? e.touches[0].clientX : e.clientX) - canvas.getBoundingClientRect().left;
+            }, {passive: false});
+
+            wrapper.addEventListener('pointermove', e => {
+                if (gameState !== 'PLAYING' || input.touchX === null) return;
+                input.touchX = (e.touches ? e.touches[0].clientX : e.clientX) - canvas.getBoundingClientRect().left;
+            }, {passive: false});
+
+            wrapper.addEventListener('pointerup', () => {
+                input.touchX = null;
+            }, {passive: false});
+            
+            wrapper.addEventListener('pointercancel', () => {
+                input.touchX = null;
+            }, {passive: false});
+
+            // ציור ראשוני
+            setTimeout(() => { draw(); }, 200);
+        });
     </script>
 </body>
 </html>
