@@ -267,65 +267,65 @@
         function initLevel(level) {
             bricks.length = 0;
             const cols = 9;
-            const rows = 14; // מספיק שורות למיצוב גמיש
-            const padding = 5;
+            const rows = 12; 
+            const padding = 4;
             const offsetTop = ch * 0.16;
             let cellWidth = (cw - (padding * (cols + 1))) / cols;
             if (cellWidth > 50) cellWidth = 50;
             const offsetLeft = (cw - (cols * (cellWidth + padding))) / 2;
 
             const midC = Math.floor(cols / 2);
-            const midR = 5; // שורת המרכז הויזואלית
+            const midR = 3; // מיקום מרכז התבנית גבוה יותר למובייל
 
             for (let r = 0; r < rows; r++) {
                 for (let c = 0; c < cols; c++) {
                     let shouldPlace = false;
 
-                    // תבניות ייחודיות לכל אחד מ-10 השלבים
+                    // תבניות משופרות וקומפקטיות לכל שלב
                     switch(level) {
                         case 1: // פירמידה
                             if (Math.abs(c - midC) <= r && r < 5) shouldPlace = true;
                             break;
-                        case 2: // איקס (X)
-                            if (Math.abs(c - midC) === Math.abs(r - midR) && r < 10) shouldPlace = true;
+                        case 2: // איקס (X) קומפקטי וממורכז
+                            if (Math.abs(c - midC) === Math.abs(r - midR) && r < 7) shouldPlace = true;
+                            if (c === midC && r === midR) shouldPlace = true; // מרכז ה-X
                             break;
-                        case 3: // טבעת כפולה
+                        case 3: // טבעת / כוונת
                             const d3 = Math.hypot(c - midC, r - midR);
-                            if ((d3 > 1.2 && d3 < 2.2) || (d3 > 3.2 && d3 < 4.2)) shouldPlace = true;
+                            if (d3 > 1.4 && d3 < 3.2) shouldPlace = true;
                             break;
-                        case 4: // פסים אנכיים
-                            if (c % 2 === 0 && r < 8) shouldPlace = true;
+                        case 4: // עמודים טקטיים
+                            if (c % 2 === 0 && r < 6) shouldPlace = true;
                             break;
-                        case 5: // מעוין גדול (Diamond) - התיקון המבוקש
-                            if (Math.abs(c - midC) + Math.abs(r - midR) <= 4) shouldPlace = true;
+                        case 5: // מעוין (יהלום)
+                            if (Math.abs(c - midC) + Math.abs(r - midR) <= 3) shouldPlace = true;
                             break;
-                        case 6: // מסגרת חלולה
-                            if ((Math.abs(c - midC) === 3 || Math.abs(r - midR) === 3) && Math.abs(c-midC) <= 3 && Math.abs(r-midR) <= 3) shouldPlace = true;
+                        case 6: // מסגרת
+                            if ((Math.abs(c - midC) === 3 || Math.abs(r - midR) === 2) && Math.abs(c-midC) <= 3 && Math.abs(r-midR) <= 2) shouldPlace = true;
                             break;
-                        case 7: // צלב טקטי (+)
-                            if ((c === midC || r === midR) && r < 10) shouldPlace = true;
+                        case 7: // פלוס (+)
+                            if ((c === midC || r === midR) && Math.abs(c-midC) <= 3 && Math.abs(r-midR) <= 3) shouldPlace = true;
                             break;
-                        case 8: // פירמידה הפוכה ומדורגת
-                            if (Math.abs(c - midC) <= (8 - r) && r >= 4 && r < 9) shouldPlace = true;
+                        case 8: // משולש הפוך
+                            if (Math.abs(c - midC) <= (5 - r) && r < 6) shouldPlace = true;
                             break;
-                        case 9: // לוח שחמט גאומטרי
-                            if ((r + c) % 2 === 0 && r < 9) shouldPlace = true;
+                        case 9: // זיגזג
+                            if ((r + c) % 3 === 0 && r < 7) shouldPlace = true;
                             break;
-                        case 10: // המבצר הסופי
-                            const d10 = Math.hypot(c - midC, r - midR);
-                            if (d10 < 4.5) shouldPlace = true;
+                        case 10: // המבצר
+                            if (Math.abs(c - midC) <= 3 && r < 6) shouldPlace = true;
                             break;
-                        default: // למקרה של מעבר מעל 10
-                            if (Math.random() < 0.5 && r < 8) shouldPlace = true;
+                        default:
+                            if (Math.random() < 0.5 && r < 6) shouldPlace = true;
                     }
 
                     if (!shouldPlace) continue;
 
-                    let effect = 'normal', emoji = '', isGrey = (Math.random() < 0.12);
+                    let effect = 'normal', emoji = '', isGrey = (Math.random() < 0.1);
                     let hp = isGrey ? 2 : 1;
                     
                     if (!isGrey && Math.random() < 0.28) {
-                        if (Math.random() < 0.45) {
+                        if (Math.random() < 0.4) {
                             effect = 'bomb'; emoji = '💣';
                         } else {
                             let p = specialEffects[Math.floor(Math.random() * specialEffects.length)];
