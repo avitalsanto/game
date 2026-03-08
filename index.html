@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Space Breaker Israel - War Edition</title>
+    <title>נלחמים במשמרות המהפכה</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Black+Ops+One&family=Rubik:wght@500;700&display=swap');
 
@@ -70,12 +70,12 @@
         }
 
         .ui-label {
-            font-size: 9px;
+            font-size: 10px;
             color: #b0d0ff;
             margin-bottom: 2px;
-            text-transform: uppercase;
             letter-spacing: 1px;
-            font-weight: 500;
+            font-weight: 700;
+            font-family: 'Rubik', sans-serif;
         }
 
         .ui-value {
@@ -118,10 +118,12 @@
         }
 
         #message-title {
-            font-size: 32px;
+            font-size: 24px;
             color: #00e5ff;
             text-shadow: 0 0 30px #00e5ff, 0 0 60px rgba(0,229,255,0.3);
             margin-bottom: 10px;
+            font-family: 'Rubik', 'Black Ops One', sans-serif;
+            padding: 0 15px;
         }
 
         #message-subtitle {
@@ -171,27 +173,27 @@
         <div id="safe-probe" style="position:absolute;top:0;left:0;width:0;height:var(--sat);pointer-events:none;"></div>
         <div id="ui-layer" dir="ltr">
             <div class="ui-box">
-                <div class="ui-label">SCORE</div>
+                <div class="ui-label">ניקוד</div>
                 <div class="ui-value" id="scoreEl">0</div>
             </div>
             
             <div class="ui-box combo-box">
-                <div class="ui-label">COMBO</div>
+                <div class="ui-label">רצף</div>
                 <div class="ui-value" id="comboEl">x1</div>
             </div>
 
             <div class="ui-box">
-                <div class="ui-label">LEVEL</div>
+                <div class="ui-label">שלב</div>
                 <div class="ui-value" id="levelEl">1/20</div>
             </div>
 
             <div class="ui-box lives-box">
-                <div class="ui-label">LIVES</div>
+                <div class="ui-label">חיים</div>
                 <div class="ui-value" id="livesEl">3</div>
             </div>
 
             <div class="ui-box">
-                <div class="ui-label">TARGET</div>
+                <div class="ui-label">יעד</div>
                 <div class="ui-value" id="targetEl">0/0</div>
             </div>
         </div>
@@ -201,7 +203,7 @@
         <canvas id="gameCanvas"></canvas>
 
         <div id="message-overlay">
-            <div id="message-title">SPACE BREAKER</div>
+            <div id="message-title">נלחמים במשמרות המהפכה</div>
             <div id="message-subtitle">לחץ כאן כדי להתחיל</div>
             <div id="highscore-display"></div>
         </div>
@@ -314,7 +316,7 @@
         { id: 'multiball', emoji: '🎖️' },
         { id: 'expand',    emoji: '🛡️' },
         { id: 'shrink',    emoji: '⚠️' },
-        { id: 'life',      emoji: '💊' },
+        { id: 'life',      emoji: '❤️' },
         { id: 'slow',      emoji: '❄️' },
         { id: 'fast',      emoji: '⚡' },
         { id: 'laser',     emoji: '🔥' }
@@ -691,7 +693,7 @@
             case 'life':
                 lives++;
                 SFX.life();
-                addFloatingText('+1 LIFE!', cw / 2, ch / 2, '#ff3366', true);
+                addFloatingText('+1 חיים!', cw / 2, ch / 2, '#ff3366', true);
                 break;
             case 'slow':
                 balls.forEach(b => { b.dx *= 0.7; b.dy *= 0.7; });
