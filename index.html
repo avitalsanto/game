@@ -171,7 +171,7 @@
 
     <div id="game-wrapper">
         <div id="safe-probe" style="position:absolute;top:0;left:0;width:0;height:var(--sat);pointer-events:none;"></div>
-        <div id="ui-layer" dir="ltr">
+        <div id="ui-layer" dir="rtl">
             <div class="ui-box">
                 <div class="ui-label">ניקוד</div>
                 <div class="ui-value" id="scoreEl">0</div>
@@ -671,9 +671,20 @@
         }
     }
 
+    const effectNames = {
+        multiball: 'ריבוי כדורים!',
+        expand: 'הרחבה!',
+        shrink: 'כיווץ!',
+        life: 'חיים!',
+        slow: 'האטה!',
+        fast: 'מהירות!',
+        laser: 'לייזר!',
+        bomb: 'פצצה!'
+    };
+
     function applyPowerup(effect, x, y) {
         SFX.powerup();
-        addFloatingText(effect.toUpperCase() + '!', x, y - 20, '#00ffcc');
+        addFloatingText(effectNames[effect] || effect, x, y - 20, '#00ffcc');
         addShockwave(x, y, '#00ffcc');
         paddle.glow = '#00ffcc';
         setTimeout(() => paddle.glow = '#00ccff', 300);
