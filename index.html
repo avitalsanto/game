@@ -1266,13 +1266,14 @@
             if (e.key.includes('Right')) input.right = false;
         });
 
-        let touchStartX = -1, touchMoved = false;
+        let touchStartX = -1, touchStartTime = 0, touchMoved = false;
         wrapper.addEventListener('touchstart', e => {
             e.preventDefault();
             if (gameState === 'PAUSED') return;
             if (gameState !== 'PLAYING') return;
             const rect = wrapper.getBoundingClientRect();
             touchStartX = e.touches[0].clientX - rect.left;
+            touchStartTime = Date.now();
             touchMoved = false;
             input.touchTarget = touchStartX;
         }, { passive: false });
@@ -1281,12 +1282,13 @@
             if (gameState !== 'PLAYING') return;
             const rect = wrapper.getBoundingClientRect();
             const touchX = e.touches[0].clientX - rect.left;
-            if (Math.abs(touchX - touchStartX) > 8) touchMoved = true;
+            if (Math.abs(touchX - touchStartX) > 15) touchMoved = true;
             input.touchTarget = touchX;
         }, { passive: false });
         wrapper.addEventListener('touchend', e => {
             e.preventDefault();
-            if (!touchMoved && (gameState === 'PLAYING' || gameState === 'PAUSED')) {
+            const tapDuration = Date.now() - touchStartTime;
+            if (!touchMoved && tapDuration < 200 && (gameState === 'PLAYING' || gameState === 'PAUSED')) {
                 togglePause();
             }
             input.touchTarget = -1;
