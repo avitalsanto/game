@@ -182,7 +182,7 @@
 
             <div class="ui-box">
                 <div class="ui-label">LEVEL</div>
-                <div class="ui-value" id="levelEl">1/10</div>
+                <div class="ui-value" id="levelEl">1/20</div>
             </div>
 
             <div class="ui-box lives-box">
@@ -297,7 +297,7 @@
     imageUrls.forEach(url => { const img = new Image(); img.src = url; mapImages.push(img); });
 
     let cw, ch, safeTop = 0, gameState = 'START', score = 0, lives = 3, currentLevel = 1;
-    const maxLevels = 10;
+    const maxLevels = 20;
     let totalBricks = 0, brokenBricks = 0, animationId, screenShake = 0, screenFlash = 0, screenFlashColor = '#fff';
     let combo = 0, comboTimer = 0, highScore = 0;
     try { highScore = parseInt(localStorage.getItem('spacebreaker_hs')) || 0; } catch(e) {}
@@ -331,6 +331,16 @@
         { bg1: '#1a0a00', bg2: '#000' },
         { bg1: '#0f001a', bg2: '#000' },
         { bg1: '#1a1a00', bg2: '#000' },
+        { bg1: '#0d1f2d', bg2: '#020a10' },
+        { bg1: '#2a0030', bg2: '#050005' },
+        { bg1: '#002a0a', bg2: '#000800' },
+        { bg1: '#2a0015', bg2: '#080002' },
+        { bg1: '#10203a', bg2: '#000510' },
+        { bg1: '#2a1800', bg2: '#0a0500' },
+        { bg1: '#002a2a', bg2: '#000808' },
+        { bg1: '#2a1000', bg2: '#0a0400' },
+        { bg1: '#180030', bg2: '#060008' },
+        { bg1: '#2a2200', bg2: '#0a0800' },
     ];
 
     let laserActive = false, laserTimer = 0;
@@ -357,7 +367,7 @@
         paddle.w = cw * 0.22;
         paddle.x = (cw - paddle.w) / 2;
         paddle.y = ch - ch * 0.12;
-        paddle.speed = cw * 0.018;
+        paddle.speed = cw * 0.022;
         paddle.hitAnim = 0;
     }
 
@@ -374,7 +384,7 @@
 
     function spawnBall(x, y) {
         const angle = Math.PI * (1.25 + Math.random() * 0.5);
-        const baseSpeed = 2.5 + (currentLevel - 1) * 0.15;
+        const baseSpeed = 3.0 + (currentLevel - 1) * 0.2;
         const speed = ch > 800 ? baseSpeed + 1 : baseSpeed;
         balls.push({ x, y, dx: Math.cos(angle) * speed, dy: Math.sin(angle) * speed, r: 7, speed, trail: [], glow: 1 });
     }
@@ -395,7 +405,7 @@
     function updateUI() {
         if (scoreEl) { scoreEl.innerText = score; popEl(scoreEl); }
         if (livesEl) livesEl.innerText = lives;
-        if (levelEl) levelEl.innerText = `${currentLevel}/10`;
+        if (levelEl) levelEl.innerText = `${currentLevel}/${maxLevels}`;
         if (targetEl) targetEl.innerText = `${brokenBricks}/${totalBricks}`;
         if (comboEl) {
             const mult = getComboMult();
@@ -439,7 +449,7 @@
     }
 
     // ============================================================
-    //  LEVEL PATTERNS — 10 unique designs
+    //  LEVEL PATTERNS — 20 unique designs
     // ============================================================
 
     function initLevel(level) {
@@ -494,8 +504,55 @@
                         const d = Math.hypot(c - midC, r - midR);
                         if (d < 5 && Math.abs(((a + Math.PI) / (Math.PI * 2) * 4 + d) % 2) < 0.9) shouldPlace = true; }
                         break;
-                    case 10: // full grid - final boss
+                    case 10: // full grid
                         if (r < 10 && Math.abs(c - midC) <= 4) shouldPlace = true;
+                        break;
+                    case 11: // heart
+                        { const hr = r - 2, hc = c - midC;
+                        if ((hr >= 0 && hr < 3 && (Math.abs(hc) >= 1 && Math.abs(hc) <= 3) && !(hr === 0 && Math.abs(hc) === 3)) ||
+                            (hr >= 3 && hr < 7 && Math.abs(hc) <= 4 - (hr - 3))) shouldPlace = true; }
+                        break;
+                    case 12: // hourglass
+                        if (r < 10 && Math.abs(c - midC) <= Math.abs(r < 5 ? 4 - r : r - 9)) shouldPlace = true;
+                        break;
+                    case 13: // checkerboard dense
+                        if (r < 10 && Math.abs(c - midC) <= 4 && (r + c) % 2 === 0) shouldPlace = true;
+                        break;
+                    case 14: // star of david
+                        { const sr = r - midR, sc = c - midC;
+                        if ((Math.abs(sc) + Math.abs(sr) <= 4 && Math.abs(sr) <= 2) ||
+                            (Math.abs(sc) <= 2 && Math.abs(sr) <= 4)) shouldPlace = true; }
+                        break;
+                    case 15: // wave
+                        { const wave = Math.round(Math.sin(c * 0.8) * 2);
+                        if (r >= 2 + wave && r < 5 + wave && Math.abs(c - midC) <= 4) shouldPlace = true;
+                        if (r >= 6 + wave && r < 9 + wave && Math.abs(c - midC) <= 4) shouldPlace = true; }
+                        break;
+                    case 16: // skull
+                        { const sr = r - 1, sc = c - midC;
+                        if ((sr >= 0 && sr < 5 && Math.abs(sc) <= 3 && !(sr < 2 && Math.abs(sc) === 3)) ||
+                            (sr === 2 && Math.abs(sc) <= 1) ||
+                            (sr >= 5 && sr < 7 && Math.abs(sc) <= 2) ||
+                            (sr === 7 && (Math.abs(sc) === 0 || Math.abs(sc) === 2))) shouldPlace = true; }
+                        break;
+                    case 17: // triple rings
+                        { const d1 = Math.hypot(c - midC, r - 3);
+                        const d2 = Math.hypot(c - (midC - 2), r - 7);
+                        const d3 = Math.hypot(c - (midC + 2), r - 7);
+                        if ((d1 > 1.5 && d1 < 2.8) || (d2 > 1.5 && d2 < 2.8) || (d3 > 1.5 && d3 < 2.8)) shouldPlace = true; }
+                        break;
+                    case 18: // maze corridors
+                        if (r < 10 && Math.abs(c - midC) <= 4 &&
+                            !((r === 1 || r === 3 || r === 5 || r === 7 || r === 9) &&
+                              ((r % 4 < 2 && c > midC - 3) || (r % 4 >= 2 && c < midC + 3)))) shouldPlace = true;
+                        break;
+                    case 19: // diamond storm
+                        { const d = Math.abs(c - midC) + Math.abs(r - midR);
+                        if ((d <= 2) || (d >= 3 && d <= 4 && (r + c) % 2 === 0)) shouldPlace = true;
+                        if (r < 10 && (Math.abs(c - 1) + Math.abs(r - 2) <= 1 || Math.abs(c - (cols - 2)) + Math.abs(r - 2) <= 1)) shouldPlace = true; }
+                        break;
+                    case 20: // final boss - thick full grid
+                        if (r < 11 && Math.abs(c - midC) <= 4) shouldPlace = true;
                         break;
                     default:
                         if (Math.abs(c - midC) + Math.abs(r - midR) <= 3) shouldPlace = true;
@@ -503,9 +560,9 @@
 
                 if (!shouldPlace) continue;
 
-                const greyChance = 0.08 + level * 0.015;
+                const greyChance = 0.06 + level * 0.018;
                 let isGrey = Math.random() < greyChance;
-                let hp = isGrey ? (level >= 7 ? 3 : 2) : 1;
+                let hp = isGrey ? (level >= 15 ? 4 : level >= 7 ? 3 : 2) : 1;
                 let effect = 'normal', emoji = '';
 
                 if (!isGrey && Math.random() < 0.25) {
@@ -930,21 +987,39 @@
 
             if (b.effect !== 'normal') {
                 const glowPulse = 0.6 + Math.sin(b.shimmer * 2) * 0.4;
-                ctx.shadowBlur = 8 * glowPulse;
-                ctx.shadowColor = b.effect === 'bomb' ? '#ff4400' : '#00e5ff';
-                ctx.fillStyle = '#111';
-                ctx.strokeStyle = b.effect === 'bomb' ? `rgba(255,68,0,${glowPulse})` : `rgba(0,229,255,${glowPulse})`;
-                ctx.lineWidth = 2;
+                const effectColors = {
+                    bomb:      { bg1: '#3a1000', bg2: '#1a0800', border: '#ff4400', shadow: '#ff4400' },
+                    multiball: { bg1: '#1a2a10', bg2: '#0a1808', border: '#66cc33', shadow: '#66cc33' },
+                    expand:    { bg1: '#0a1a2a', bg2: '#061018', border: '#3399ff', shadow: '#3399ff' },
+                    shrink:    { bg1: '#2a2a00', bg2: '#181800', border: '#ccaa00', shadow: '#ccaa00' },
+                    life:      { bg1: '#2a0a1a', bg2: '#180610', border: '#ff3388', shadow: '#ff3388' },
+                    slow:      { bg1: '#0a1a2a', bg2: '#061520', border: '#44ccee', shadow: '#44ccee' },
+                    fast:      { bg1: '#2a1a00', bg2: '#1a1000', border: '#ffaa22', shadow: '#ffaa22' },
+                    laser:     { bg1: '#2a0a00', bg2: '#1a0600', border: '#ff6622', shadow: '#ff6622' },
+                };
+                const ec = effectColors[b.effect] || effectColors.bomb;
+                const bgGrad = ctx.createLinearGradient(b.x, b.y, b.x, b.y + b.h);
+                bgGrad.addColorStop(0, ec.bg1);
+                bgGrad.addColorStop(1, ec.bg2);
+                ctx.shadowBlur = 6 * glowPulse;
+                ctx.shadowColor = ec.shadow;
+                ctx.fillStyle = bgGrad;
+                ctx.strokeStyle = ec.border;
+                ctx.globalAlpha = 0.7 + glowPulse * 0.3;
+                ctx.lineWidth = 1;
                 ctx.beginPath(); ctx.roundRect(b.x, b.y, b.w, b.h, 6); ctx.fill(); ctx.stroke();
                 ctx.shadowBlur = 0;
+                ctx.globalAlpha = 1;
                 ctx.font = `${Math.min(24, b.w * 0.55)}px Arial`;
                 ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-                ctx.fillStyle = 'white';
                 ctx.fillText(b.emoji, b.x + b.w / 2, b.y + b.h / 2);
             } else {
                 if (b.isGrey) {
                     ctx.globalAlpha = b.hp === 1 ? 0.45 : 0.75;
                 }
+                ctx.beginPath();
+                ctx.roundRect(b.x, b.y, b.w, b.h, 6);
+                ctx.clip();
                 const currentImg = mapImages[b.imgType];
                 drawImageCover(ctx, currentImg, b.x, b.y, b.w, b.h);
                 if (b.isGrey) {
