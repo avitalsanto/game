@@ -1180,6 +1180,25 @@
         animationId = requestAnimationFrame(gameLoop);
     }
 
+    let lastResumeTime = 0;
+    function togglePause() {
+        if (gameState === 'PLAYING') {
+            if (Date.now() - lastResumeTime < 300) return;
+            gameState = 'PAUSED';
+            if (animationId) cancelAnimationFrame(animationId);
+            messageTitle.innerText = 'השהייה';
+            messageTitle.style.color = '#00e5ff';
+            messageSubtitle.innerText = 'לחץ כדי להמשיך';
+            highscoreDisplay.innerText = `ניקוד: ${score}`;
+            messageOverlay.classList.remove('hidden');
+        } else if (gameState === 'PAUSED') {
+            gameState = 'PLAYING';
+            lastResumeTime = Date.now();
+            messageOverlay.classList.add('hidden');
+            gameLoop();
+        }
+    }
+
     function handleInteraction() {
         if (gameState === 'START' || gameState === 'GAMEOVER' || gameState === 'VICTORY') {
             if (animationId) cancelAnimationFrame(animationId);
@@ -1196,6 +1215,8 @@
             messageOverlay.classList.add('hidden');
             levelTransition = 1;
             gameLoop();
+        } else if (gameState === 'PAUSED') {
+            togglePause();
         }
     }
 
@@ -1233,26 +1254,43 @@
         window.addEventListener('keydown', e => {
             if (e.key.includes('Left')) input.left = true;
             if (e.key.includes('Right')) input.right = true;
+            if (e.key === ' ' || e.key === 'Escape' || e.key === 'p' || e.key === 'P') {
+                e.preventDefault();
+                if (gameState === 'PLAYING' || gameState === 'PAUSED') togglePause();
+            }
         });
         window.addEventListener('keyup', e => {
             if (e.key.includes('Left')) input.left = false;
             if (e.key.includes('Right')) input.right = false;
         });
 
-        const touchHandler = e => {
+        let touchStartX = -1, touchMoved = false;
+        wrapper.addEventListener('touchstart', e => {
+            e.preventDefault();
+            if (gameState === 'PAUSED') return;
+            if (gameState !== 'PLAYING') return;
+            const rect = wrapper.getBoundingClientRect();
+            touchStartX = e.touches[0].clientX - rect.left;
+            touchMoved = false;
+            input.touchTarget = touchStartX;
+        }, { passive: false });
+        wrapper.addEventListener('touchmove', e => {
             e.preventDefault();
             if (gameState !== 'PLAYING') return;
             const rect = wrapper.getBoundingClientRect();
             const touchX = e.touches[0].clientX - rect.left;
+            if (Math.abs(touchX - touchStartX) > 8) touchMoved = true;
             input.touchTarget = touchX;
-        };
-        wrapper.addEventListener('touchstart', touchHandler, { passive: false });
-        wrapper.addEventListener('touchmove', touchHandler, { passive: false });
+        }, { passive: false });
         wrapper.addEventListener('touchend', e => {
             e.preventDefault();
+            if (!touchMoved && (gameState === 'PLAYING' || gameState === 'PAUSED')) {
+                togglePause();
+            }
             input.touchTarget = -1;
             input.left = false;
             input.right = false;
+            touchMoved = false;
         }, { passive: false });
 
         let loadedCount = 0;
